@@ -1,8 +1,21 @@
+import warnings
 from pathlib import Path
+import snakemake.io as io
+from snakemake.utils import min_version
+
+##### set minimum snakemake version #####
+min_version("6.7.0")
+
+# IMPORT CONFIG VARIABLES
+configfile: "config/config.yaml"
+
 
 out = "results"
-config["hap_files"] = [x for x in Path(config["hap_files"]).glob("**/*") if x.is_file() and x.suffix() == ".hap"]
-config["samples"] = [x.with_suffix("") for x in config["hap_files"]]
+config["hap_files"] = [
+    x for x in Path(config["hap_files"]).glob("**/*")
+    if x.is_file() and x.suffix == ".hap"
+]
+config["samples"] = [x.name for x in config["hap_files"]]
 config["hap_files"] = dict(zip(config["samples"], config["hap_files"]))
 config["genotypes"] = Path(config["genotypes"])
 
@@ -52,4 +65,4 @@ rule plot:
     conda:
         "envs/default.yml"
     shell:
-        "scripts/manhattan.py -o {output.png} -l {input.linear}"
+        "workflow/scripts/manhattan.py -o {output.png} -l {input.linear}"
