@@ -1,6 +1,6 @@
 from pathlib import Path
 
-out = "output"
+out = "results"
 config["hap_files"] = [x for x in Path(config["hap_files"]).glob("**/*") if x.is_file() and x.suffix() == ".hap"]
 config["samples"] = [x.with_suffix("") for x in config["hap_files"]]
 config["hap_files"] = dict(zip(config["samples"], config["hap_files"]))
@@ -15,22 +15,34 @@ rule all:
 
 rule simulate:
     input:
+        gts = config["hap_vars"],
         hap = lambda wildcards: config["hap_files"][wildcards.samp],
-        gts = config["genotypes"],
+    params:
+        beta = lambda wildcards: wildcards.beta,
+        h2 = lambda wildcards: wildcards.heritability,
     output:
         pts = out+"/{samp}/h{heritability}/b{beta}.pheno",
     conda:
-        pass
+        "envs/default.yml"
+    shell:
+        "haptools simphenotype -o {output.pts} -h {params.h2} {input.gts} "
+        "<( sed 's/EUR\\t0.99$/EUR\\t{params.beta}/' {input.hap} )"
 
 rule gwas:
     input:
         gts = config["genotypes"],
         pts = rules.simulate.output.pts,
+    params:
+        pgen_prefix = lambda wildcards: input.gts.with_suffix(""),
+        out_prefix = out+"/{samp}/h{heritability}/b{beta}",
     output:
-        log = temp(),
-        linear = out+"/{samp}/h{heritability}/b{beta}.linear",
+        log = temp(out+"/{samp}/h{heritability}/b{beta}.APOe4.glm.linear.log"),
+        linear = out+"/{samp}/h{heritability}/b{beta}.APOe4.glm.linear",
     conda:
-        pass
+        "envs/default.yml"
+    shell:
+        "plink2 --glm dominant --pfile {params.pgen_prefix} --pheno {output.pts} "
+        "--out {params.out_prefix}"
 
 rule plot:
     input:
@@ -38,4 +50,6 @@ rule plot:
     output:
         png = out+"/{samp}/h{heritability}/b{beta}.png",
     conda:
-        pass
+        "envs/default.yml"
+    shell:
+        "scripts/manhattan.py -o {output.png} -l {input.linear}"
