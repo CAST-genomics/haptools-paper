@@ -1,0 +1,11 @@
+channels:
+  - conda-forge
+  - bioconda
+  - nodefaults
+dependencies:
+  - plink2
+  - matplotlib
+  - pandas
+  - click
+  - numpy
+  - statsmodels

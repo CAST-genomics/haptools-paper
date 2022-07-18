@@ -1,0 +1,41 @@
+from pathlib import Path
+
+out = "output"
+config["hap_files"] = [x for x in Path(config["hap_files"]).glob("**/*") if x.is_file() and x.suffix() == ".hap"]
+config["samples"] = [x.with_suffix("") for x in config["hap_files"]]
+config["hap_files"] = dict(zip(config["samples"], config["hap_files"]))
+config["genotypes"] = Path(config["genotypes"])
+
+rule all:
+    input:
+        expand(
+            out+"/{samp}/h{heritability}/b{beta}.png", beta=config["betas"],
+            samp=config["samples"], heritability=config["heritabilities"],
+        )
+
+rule simulate:
+    input:
+        hap = lambda wildcards: config["hap_files"][wildcards.samp],
+        gts = config["genotypes"],
+    output:
+        pts = out+"/{samp}/h{heritability}/b{beta}.pheno",
+    conda:
+        pass
+
+rule gwas:
+    input:
+        gts = config["genotypes"],
+        pts = rules.simulate.output.pts,
+    output:
+        log = temp(),
+        linear = out+"/{samp}/h{heritability}/b{beta}.linear",
+    conda:
+        pass
+
+rule plot:
+    input:
+        linear = rules.gwas.output.linear,
+    output:
+        png = out+"/{samp}/h{heritability}/b{beta}.png",
+    conda:
+        pass
