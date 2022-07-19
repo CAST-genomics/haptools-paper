@@ -3,9 +3,12 @@ channels:
   - bioconda
   - nodefaults
 dependencies:
-  - plink2
-  - matplotlib
-  - pandas
-  - click
-  - numpy
-  - statsmodels
+  - bioconda::plink2
+  - conda-forge::matplotlib
+  - conda-forge::pandas
+  - conda-forge::click
+  - conda-forge::numpy
+  - conda-forge::statsmodels
+  - conda-forge::pip
+  - pip:
+    - git+https://github.com/gymrek-lab/haptools.git@ref/simphenotype

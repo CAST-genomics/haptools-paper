@@ -1,8 +1,23 @@
+import warnings
 from pathlib import Path
+import snakemake.io as io
+from snakemake.utils import min_version
 
-out = "output"
-config["hap_files"] = [x for x in Path(config["hap_files"]).glob("**/*") if x.is_file() and x.suffix() == ".hap"]
-config["samples"] = [x.with_suffix("") for x in config["hap_files"]]
+##### set minimum snakemake version #####
+min_version("6.7.0")
+
+# IMPORT CONFIG VARIABLES
+configfile: "config/config.yaml"
+
+
+out = "results"
+logs = out + "/logs"
+bench = out + "/bench"
+config["hap_files"] = [
+    x for x in Path(config["hap_files"]).glob("**/*")
+    if x.is_file() and x.suffix == ".hap"
+]
+config["samples"] = [x.name[:-4] for x in config["hap_files"]]
 config["hap_files"] = dict(zip(config["samples"], config["hap_files"]))
 config["genotypes"] = Path(config["genotypes"])
 
@@ -15,27 +30,60 @@ rule all:
 
 rule simulate:
     input:
+        gts = config["hap_vars"],
         hap = lambda wildcards: config["hap_files"][wildcards.samp],
-        gts = config["genotypes"],
+    params:
+        beta = lambda wildcards: wildcards.beta,
+        h2 = lambda wildcards: wildcards.heritability,
     output:
         pts = out+"/{samp}/h{heritability}/b{beta}.pheno",
+    resources:
+        runtime="0:01:00"
+    log:
+        logs + "/simulate/{samp}/h{heritability}/b{beta}.log"
+    benchmark:
+        bench + "/simulate/{samp}/h{heritability}/b{beta}.txt"
     conda:
-        pass
+        "envs/default.yml"
+    shell:
+        "haptools simphenotype -o {output.pts} -h {params.h2} {input.gts} "
+        "<( sed 's/EUR\\t0.99$/EUR\\t{params.beta}/' {input.hap} ) &>{log}"
 
 rule gwas:
     input:
         gts = config["genotypes"],
         pts = rules.simulate.output.pts,
+    params:
+        pgen_prefix = lambda wildcards, input: Path(input.gts).with_suffix(""),
+        out_prefix = out+"/{samp}/h{heritability}/b{beta}",
     output:
-        log = temp(),
-        linear = out+"/{samp}/h{heritability}/b{beta}.linear",
+        log = temp(out+"/{samp}/h{heritability}/b{beta}.log"),
+        linear = out+"/{samp}/h{heritability}/b{beta}.APOe4.glm.linear",
+    resources:
+        runtime="0:05:00"
+    log:
+        logs + "/gwas/{samp}/h{heritability}/b{beta}.log"
+    benchmark:
+        bench + "/gwas/{samp}/h{heritability}/b{beta}.txt"
+    threads: 1
     conda:
-        pass
+        "envs/default.yml"
+    shell:
+        "plink2 --glm dominant --pfile {params.pgen_prefix} --pheno {input.pts} "
+        "--out {params.out_prefix} --threads {threads} &>{log} || true"
 
-rule plot:
+rule manhattan:
     input:
         linear = rules.gwas.output.linear,
     output:
         png = out+"/{samp}/h{heritability}/b{beta}.png",
+    resources:
+        runtime="0:01:00"
+    log:
+        logs + "/manhattan/{samp}/h{heritability}/b{beta}.log"
+    benchmark:
+        bench + "/manhattan/{samp}/h{heritability}/b{beta}.txt"
     conda:
-        pass
+        "envs/default.yml"
+    shell:
+        "workflow/scripts/manhattan.py -o {output.png} -l {input.linear} &>{log}"
