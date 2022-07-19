@@ -11,11 +11,13 @@ configfile: "config/config.yaml"
 
 
 out = "results"
+logs = out + "/logs"
+bench = out + "/bench"
 config["hap_files"] = [
     x for x in Path(config["hap_files"]).glob("**/*")
     if x.is_file() and x.suffix == ".hap"
 ]
-config["samples"] = [x.name for x in config["hap_files"]]
+config["samples"] = [x.name[:-4] for x in config["hap_files"]]
 config["hap_files"] = dict(zip(config["samples"], config["hap_files"]))
 config["genotypes"] = Path(config["genotypes"])
 
@@ -35,34 +37,53 @@ rule simulate:
         h2 = lambda wildcards: wildcards.heritability,
     output:
         pts = out+"/{samp}/h{heritability}/b{beta}.pheno",
+    resources:
+        runtime="0:01:00"
+    log:
+        logs + "/simulate/{samp}/h{heritability}/b{beta}.log"
+    benchmark:
+        bench + "/simulate/{samp}/h{heritability}/b{beta}.txt"
     conda:
         "envs/default.yml"
     shell:
         "haptools simphenotype -o {output.pts} -h {params.h2} {input.gts} "
-        "<( sed 's/EUR\\t0.99$/EUR\\t{params.beta}/' {input.hap} )"
+        "<( sed 's/EUR\\t0.99$/EUR\\t{params.beta}/' {input.hap} ) &>{log}"
 
 rule gwas:
     input:
         gts = config["genotypes"],
         pts = rules.simulate.output.pts,
     params:
-        pgen_prefix = lambda wildcards: input.gts.with_suffix(""),
+        pgen_prefix = lambda wildcards, input: Path(input.gts).with_suffix(""),
         out_prefix = out+"/{samp}/h{heritability}/b{beta}",
     output:
-        log = temp(out+"/{samp}/h{heritability}/b{beta}.APOe4.glm.linear.log"),
+        log = temp(out+"/{samp}/h{heritability}/b{beta}.log"),
         linear = out+"/{samp}/h{heritability}/b{beta}.APOe4.glm.linear",
+    resources:
+        runtime="0:05:00"
+    log:
+        logs + "/gwas/{samp}/h{heritability}/b{beta}.log"
+    benchmark:
+        bench + "/gwas/{samp}/h{heritability}/b{beta}.txt"
+    threads: 1
     conda:
         "envs/default.yml"
     shell:
-        "plink2 --glm dominant --pfile {params.pgen_prefix} --pheno {output.pts} "
-        "--out {params.out_prefix}"
+        "plink2 --glm dominant --pfile {params.pgen_prefix} --pheno {input.pts} "
+        "--out {params.out_prefix} --threads {threads} &>{log} || true"
 
-rule plot:
+rule manhattan:
     input:
         linear = rules.gwas.output.linear,
     output:
         png = out+"/{samp}/h{heritability}/b{beta}.png",
+    resources:
+        runtime="0:01:00"
+    log:
+        logs + "/manhattan/{samp}/h{heritability}/b{beta}.log"
+    benchmark:
+        bench + "/manhattan/{samp}/h{heritability}/b{beta}.txt"
     conda:
         "envs/default.yml"
     shell:
-        "workflow/scripts/manhattan.py -o {output.png} -l {input.linear}"
+        "workflow/scripts/manhattan.py -o {output.png} -l {input.linear} &>{log}"

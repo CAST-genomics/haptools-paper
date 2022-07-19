@@ -11,8 +11,7 @@
 
 # An example bash script demonstrating how to run the entire snakemake pipeline
 # This script creates two separate log files in the output dir:
-# 	1) log - the basic snakemake log of completed rules
-# 	2) qlog - a more detailed log of the progress of each rule and any errors
+# 	1) qlog - the basic snakemake log of completed rules
 
 # Before running this snakemake pipeline, remember to complete the config file
 # with the required input info.
@@ -21,7 +20,6 @@
 mkdir -p "logs"
 
 # clear leftover log files
-echo ""> "logs/log"
 echo ""> "logs/qlog"
 
 # try to find and activate the snakemake conda env if we need it
@@ -29,7 +27,7 @@ if ! command -v 'snakemake' &>/dev/null && \
 	command -v 'conda' &>/dev/null && \
    [ "$CONDA_DEFAULT_ENV" != "snakemake" ] && \
    conda info --envs | grep "$CONDA_ROOT/snakemake" &>/dev/null; then
-        echo "Snakemake not detected. Attempting to switch to snakemake environment." >> "logs/log"
+        echo "Snakemake not detected. Attempting to switch to snakemake environment." >> "logs/qlog"
         eval "$(conda shell.bash hook)"
         conda activate snakemake
 fi
@@ -38,7 +36,7 @@ fi
 # check: are we being executed from within qsub?
 if [ "$ENVIRONMENT" = "BATCH" ]; then
     snakemake \
-    --cluster "qsub -d . -V -q hotel -l walltime={resources.runtime} -l nodes=1:ppn={threads} -j oe -o /dev/null" \
+    --cluster "qsub -d . -V -q condo -l walltime={resources.runtime} -l nodes=1:ppn={threads} -j oe -o /dev/null" \
     --default-resources 'runtime="00:30:00"' \
     --latency-wait 60 \
     --use-conda \
@@ -46,7 +44,7 @@ if [ "$ENVIRONMENT" = "BATCH" ]; then
     -k \
     -j 12 \
     -c 12 \
-    "$@" >>"logs/log" 2>>"logs/qlog"
+    "$@" &>>"logs/qlog"
 else
     snakemake \
     --latency-wait 60 \
@@ -54,7 +52,7 @@ else
     --conda-frontend conda \
     -k \
     -c 12 \
-    "$@" >>"logs/log" 2>>"logs/qlog"
+    "$@" &>>"logs/qlog"
 fi
 
 exit_code="$?"
@@ -63,7 +61,7 @@ if command -v 'slack' &>/dev/null; then
         slack "snakemake finished successfully" &>/dev/null
     else
         slack "snakemake haptools-paper job failed" &>/dev/null
-        slack "$(tail -n4 "logs/log")" &>/dev/null
+        slack "$(tail -n4 "logs/qlog")" &>/dev/null
     fi
 fi
 exit "$exit_code"
