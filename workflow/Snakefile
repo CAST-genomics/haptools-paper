@@ -15,7 +15,7 @@ logs = out + "/logs"
 bench = out + "/bench"
 config["hap_files"] = [
     x for x in Path(config["hap_files"]).glob("**/*")
-    if x.is_file() and x.suffix == ".hap"
+    if x.is_file() and x.suffix == ".hap" and x.name[:-4] in config["haps"]
 ]
 config["samples"] = [x.name[:-4] for x in config["hap_files"]]
 config["hap_files"] = dict(zip(config["samples"], config["hap_files"]))
@@ -46,7 +46,7 @@ rule simulate:
     conda:
         "envs/default.yml"
     shell:
-        "haptools simphenotype -o {output.pts} -h {params.h2} {input.gts} "
+        "haptools simphenotype -o {output.pts} -h {params.h2} -v DEBUG {input.gts} "
         "<( sed 's/EUR\\t0.99$/EUR\\t{params.beta}/' {input.hap} ) &>{log}"
 
 rule gwas:
@@ -56,9 +56,10 @@ rule gwas:
     params:
         pgen_prefix = lambda wildcards, input: Path(input.gts).with_suffix(""),
         out_prefix = out+"/{samp}/h{heritability}/b{beta}",
+        name = lambda wildcards: wildcards.samp,
     output:
         log = temp(out+"/{samp}/h{heritability}/b{beta}.log"),
-        linear = out+"/{samp}/h{heritability}/b{beta}.APOe4.glm.linear",
+        linear = out+"/{samp}/h{heritability}/b{beta}.{samp}.glm.linear",
     resources:
         runtime="0:05:00"
     log:
@@ -69,8 +70,9 @@ rule gwas:
     conda:
         "envs/default.yml"
     shell:
-        "plink2 --glm dominant --pfile {params.pgen_prefix} --pheno {input.pts} "
-        "--out {params.out_prefix} --threads {threads} &>{log} || true"
+        "plink2 --glm dominant --variance-standardize {params.name} "
+        "--pheno {input.pts} --pfile {params.pgen_prefix} --out {params.out_prefix} "
+        "--threads {threads} &>{log} || true"
 
 rule manhattan:
     input:
