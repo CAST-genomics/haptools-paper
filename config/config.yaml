@@ -1,5 +1,6 @@
 hap_files: resources/hap_files
+haps: ["APOe4", "rs429358-rs7412"]
 hap_vars: resources/apoe.vcf.gz
 genotypes: resources/1000G_chr19.pgen
-betas: [0.1, 0.4, 0.7, 1]
-heritabilities: [0.1, 0.4, 0.7, 1]
+betas: [0.2, 0.3, 0.4]
+heritabilities: [0.4]
