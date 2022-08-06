@@ -81,7 +81,8 @@ rule manhattan:
             samp=config["samples"], allow_missing=True,
         ),
     params:
-        linear = lambda wildcards, input: [f"-l {i}" for i in input.linear]
+        linear = lambda wildcards, input: [f"-l {i}" for i in input.linear],
+        ids = [f"-i {i}" for i in config["samples"][0].split("-")],
     output:
         png = out+"/h{heritability}/b{beta}/manhattan.png",
     resources:
@@ -93,4 +94,5 @@ rule manhattan:
     conda:
         "envs/default.yml"
     shell:
-        "workflow/scripts/manhattan.py -o {output.png} {params.linear} &>{log}"
+        "workflow/scripts/manhattan.py -o {output.png} {params.linear} {params.ids} "
+        "&>{log}"

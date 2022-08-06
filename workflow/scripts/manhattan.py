@@ -29,7 +29,17 @@ from pandas.api.types import CategoricalDtype
     show_default="stdout",
     help="A PNG file containing a Manhattan plot of the results",
 )
-def main(linear=[sys.stdin], output=sys.stdout):
+@click.option(
+    "-i",
+    "--id",
+    "ids",
+    multiple=True,
+    type=str,
+    default=[],
+    show_default="no IDs",
+    help="Which variant IDs should we highlight in red?",
+)
+def main(linear=[sys.stdin], output=sys.stdout, ids=[]):
     """
     Create a manhattan plot from the results of a PLINK2 GWAS
     """
@@ -47,7 +57,7 @@ def main(linear=[sys.stdin], output=sys.stdout):
         "T_STAT": "tstat",
         "P": "pval",
     }
-    keep_cols = ["chromosome", "pos", "beta", "se", "pval"]
+    keep_cols = ["chromosome", "pos", "id", "beta", "se", "pval"]
 
     # create the plot
     fig, ax = plt.subplots(1, len(linear), figsize=(14, 8), sharex=True, sharey=True)
@@ -76,7 +86,10 @@ def main(linear=[sys.stdin], output=sys.stdout):
         )
         df = df.sort_values('chromosome')
         # create the plot using pandas and add it to the figure
-        df.plot(kind='scatter', x='pos', y='-log10(p)', ax=ax[idx])
+        df[~df["id"].isin(ids)].plot(kind='scatter', x='pos', y='-log10(p)', ax=ax[idx])
+        x_ids = df[df["id"].isin(ids)]['pos']
+        y_ids = df[df["id"].isin(ids)]['-log10(p)']
+        ax[idx].scatter(x_ids, y_ids, color='red', marker='o', s=20)
         ax_name = Path(Path(linear_fname.stem).stem).stem
         ax[idx].title.set_text(ax_name.replace('-', " + "))
         ax[idx].set(xlabel=None, ylabel=None)
@@ -87,7 +100,6 @@ def main(linear=[sys.stdin], output=sys.stdout):
     df = pd.concat(dfs, ignore_index=True)
 
     # set the y-axis limit so that both axes have the same limit
-    print(max_pval)
     for idx, linear_fname in enumerate(linear):
         ax[idx].set_ylim(top=max_pval)
 
