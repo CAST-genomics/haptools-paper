@@ -1,6 +1,18 @@
-hap_files: resources/hap_files
-haps: ["APOe4", "rs429358-rs7412"]
-hap_vars: resources/apoe.vcf.gz
-genotypes: resources/1000G_chr19.pgen
-betas: [0.2, 0.3, 0.4]
-heritabilities: [0.4]
+apoe4:
+  hap_files: resources/hap_files
+  haps: ["APOe4", "rs429358-rs7412"]
+  hap_vars: resources/apoe.vcf.gz
+  genotypes: resources/1000G_chr19.pgen
+  betas: [0.2, 0.3, 0.4]
+  heritabilities: [0.4]
+ancestry:
+  reference: resources/1000G_chr1.vcf.gz
+  sample_info: resources/1000G_AfrAmerican_sampleinfo.tsv
+  models:
+    Admixed: resources/1000G_AfrAmerican_model.dat
+    YRI: resources/1000G_YRI_model.dat
+    CEU: resources/1000G_CEU_model.dat
+  mapdir: resources/map
+  snp: 1:109274968
+  hap: resources/rs12740374.hap
+  betas: [0.2]

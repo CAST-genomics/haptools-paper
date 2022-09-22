@@ -4,95 +4,32 @@ import snakemake.io as io
 from snakemake.utils import min_version
 
 ##### set minimum snakemake version #####
-min_version("6.7.0")
+min_version("7.14.0")
 
 # IMPORT CONFIG VARIABLES
 configfile: "config/config.yaml"
 
 
-out = "results"
-logs = out + "/logs"
-bench = out + "/bench"
-config["hap_files"] = [
-    x for x in Path(config["hap_files"]).glob("**/*")
-    if x.is_file() and x.suffix == ".hap" and x.name[:-4] in config["haps"]
-]
-config["samples"] = [x.name[:-4] for x in config["hap_files"]]
-config["hap_files"] = dict(zip(config["samples"], config["hap_files"]))
-config["genotypes"] = Path(config["genotypes"])
-
 rule all:
     input:
         expand(
-            out+"/h{heritability}/b{beta}/manhattan.png",
-            beta=config["betas"], heritability=config["heritabilities"],
+            "apoe4/h{heritability}/b{beta}/manhattan.pdf",
+            beta=config["apoe4"]["betas"],
+            heritability=config["apoe4"]["heritabilities"],
+        ) + expand(
+            "ancestry/b{beta}/{type}/{samp}.{samp}.glm.linear",
+            samp=config["ancestry"]["models"].keys(),
+            beta=config["ancestry"]["betas"],
+            type="ancestry",
         )
 
-rule simulate:
-    input:
-        gts = config["hap_vars"],
-        hap = lambda wildcards: config["hap_files"][wildcards.samp],
-    params:
-        beta = lambda wildcards: wildcards.beta,
-        h2 = lambda wildcards: wildcards.heritability,
-    output:
-        pts = out+"/h{heritability}/b{beta}/{samp}.pheno",
-    resources:
-        runtime="0:01:00"
-    log:
-        logs + "/simulate/h{heritability}/b{beta}/{samp}.log"
-    benchmark:
-        bench + "/simulate/h{heritability}/b{beta}/{samp}.txt"
-    conda:
-        "envs/default.yml"
-    shell:
-        "haptools simphenotype -o {output.pts} -h {params.h2} -v DEBUG {input.gts} "
-        "<( sed 's/EUR\\t0.99$/EUR\\t{params.beta}/' {input.hap} ) &>{log}"
+module apoe4:
+    snakefile: "rules/apoe4.smk"
+    config: config["apoe4"]
 
-rule gwas:
-    input:
-        gts = config["genotypes"],
-        pts = rules.simulate.output.pts,
-    params:
-        pgen_prefix = lambda wildcards, input: Path(input.gts).with_suffix(""),
-        out_prefix = out+"/h{heritability}/b{beta}/{samp}",
-        name = lambda wildcards: wildcards.samp,
-    output:
-        log = temp(out+"/h{heritability}/b{beta}/{samp}.log"),
-        linear = out+"/h{heritability}/b{beta}/{samp}.{samp}.glm.linear",
-    resources:
-        runtime="0:05:00"
-    log:
-        logs + "/gwas/h{heritability}/b{beta}/{samp}.log"
-    benchmark:
-        bench + "/gwas/h{heritability}/b{beta}/{samp}.txt"
-    threads: 1
-    conda:
-        "envs/default.yml"
-    shell:
-        "plink2 --glm dominant --variance-standardize {params.name} "
-        "--pheno {input.pts} --pfile {params.pgen_prefix} --out {params.out_prefix} "
-        "--threads {threads} &>{log} || true"
+module ancestry:
+    snakefile: "rules/ancestry.smk"
+    config: config["ancestry"]
 
-rule manhattan:
-    input:
-        linear = expand(
-            rules.gwas.output.linear,
-            samp=config["samples"], allow_missing=True,
-        ),
-    params:
-        linear = lambda wildcards, input: [f"-l {i}" for i in input.linear],
-        ids = [f"-i {i}" for i in config["samples"][0].split("-")],
-    output:
-        png = out+"/h{heritability}/b{beta}/manhattan.png",
-    resources:
-        runtime="0:02:00"
-    log:
-        logs + "/manhattan/h{heritability}/b{beta}/manhattan.log"
-    benchmark:
-        bench + "/manhattan/h{heritability}/b{beta}/manhattan.txt"
-    conda:
-        "envs/default.yml"
-    shell:
-        "workflow/scripts/manhattan.py -o {output.png} {params.linear} {params.ids} "
-        "&>{log}"
+use rule * from apoe4 as apoe4_*
+use rule * from ancestry as ancestry_*
