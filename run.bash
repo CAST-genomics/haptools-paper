@@ -6,7 +6,7 @@
 #PBS -o /dev/null
 #PBS -N run.snakemake
 #PBS -l nodes=1:ppn=1
-#PBS -l walltime=1:00:00
+#PBS -l walltime=4:00:00
 
 
 # An example bash script demonstrating how to run the entire snakemake pipeline
