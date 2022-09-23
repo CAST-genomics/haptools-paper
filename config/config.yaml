@@ -14,5 +14,5 @@ ancestry:
     CEU: resources/1000G_CEU_model.dat
   mapdir: resources/map
   snp: 1:109274968
-  hap: resources/rs12740374.hap
+  hap: resources/rs12740374.hap.gz
   betas: [0.2]

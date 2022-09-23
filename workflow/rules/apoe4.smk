@@ -1,7 +1,7 @@
 from pathlib import Path
 
 
-out = "apoe4"
+out = "results/apoe4/"
 config["hap_files"] = [
     x for x in Path(config["hap_files"]).glob("**/*")
     if x.is_file() and x.suffix == ".hap" and x.name[:-4] in config["haps"]
@@ -26,32 +26,33 @@ rule transform:
     resources:
         runtime="0:01:00"
     log:
-        out+"/logs/transform/{samp}.log"
+        out+"logs/transform/{samp}.log"
     benchmark:
-        out+"/bench/transform/{samp}.txt"
+        out+"bench/transform/{samp}.txt"
     conda:
         "../envs/default.yml"
     shell:
-        "haptools transform -o {output.gts} {input.gts} {input.hap}"
+        "haptools transform -v INFO -o {output.gts} {input.gts} {input.hap} &> {log}"
 
 rule merge:
     input:
         gts = config["hap_vars"],
         hps = rules.transform.output.gts,
     params:
-        prefix = out+"/merge/{samp}"
+        prefix = lambda w, output: Path(output.gts).with_suffix(""),
     output:
-        gts = out+"/merge/{samp}.pgen",
+        log = temp(out+"merge/{samp}.log"),
+        gts = out+"merge/{samp}.pgen",
     resources:
         runtime="0:01:00"
     log:
-        out+"/logs/merge/{samp}.log"
+        out+"logs/merge/{samp}.log"
     benchmark:
-        out+"/bench/merge/{samp}.txt"
+        out+"bench/merge/{samp}.txt"
     conda:
         "../envs/default.yml"
     shell:
-        "plink2 --pfile {input.gts} --pmerge {input.hps} --out {params.prefix}"
+        "plink2 --pfile {input.gts} --pmerge {input.hps} --out {params.prefix} &> {log}"
 
 rule sim_pts:
     input:
@@ -61,13 +62,13 @@ rule sim_pts:
         beta = lambda wildcards: wildcards.beta,
         h2 = lambda wildcards: wildcards.heritability,
     output:
-        pts = out+"/h{heritability}/b{beta}/{samp}.pheno",
+        pts = out+"h{heritability}/b{beta}/{samp}.pheno",
     resources:
         runtime="0:01:00"
     log:
-        out+"/logs/sim_pts/h{heritability}/b{beta}/{samp}.log"
+        out+"logs/sim_pts/h{heritability}/b{beta}/{samp}.log"
     benchmark:
-        out+"/bench/sim_pts/h{heritability}/b{beta}/{samp}.txt"
+        out+"bench/sim_pts/h{heritability}/b{beta}/{samp}.txt"
     conda:
         "../envs/default.yml"
     shell:
@@ -79,18 +80,18 @@ rule gwas:
         gts = str(config["genotypes"]),
         pts = rules.sim_pts.output.pts,
     params:
-        pgen_prefix = lambda wildcards, input: Path(input.gts).with_suffix(""),
-        out_prefix = out+"/h{heritability}/b{beta}/{samp}",
+        pgen_prefix = lambda w, input: Path(input.gts).with_suffix(""),
+        out_prefix = lambda w, output: Path(output.log).with_suffix(""),
         name = lambda wildcards: wildcards.samp,
     output:
-        log = temp(out+"/h{heritability}/b{beta}/{samp}.log"),
-        linear = out+"/h{heritability}/b{beta}/{samp}.{samp}.glm.linear",
+        log = temp(out+"h{heritability}/b{beta}/{samp}.log"),
+        linear = out+"h{heritability}/b{beta}/{samp}.{samp}.glm.linear",
     resources:
         runtime="0:05:00"
     log:
-        out+"/logs/gwas/h{heritability}/b{beta}/{samp}.log"
+        out+"logs/gwas/h{heritability}/b{beta}/{samp}.log"
     benchmark:
-        out+"/bench/gwas/h{heritability}/b{beta}/{samp}.txt"
+        out+"bench/gwas/h{heritability}/b{beta}/{samp}.txt"
     threads: 1
     conda:
         "../envs/default.yml"
@@ -102,20 +103,20 @@ rule gwas:
 rule manhattan:
     input:
         linear = expand(
-            out+"/h{heritability}/b{beta}/{samp}.{samp}.glm.linear",
+            out+"h{heritability}/b{beta}/{samp}.{samp}.glm.linear",
             samp=config["samples"], allow_missing=True,
         ),
     params:
         linear = lambda wildcards, input: [f"-l {i}" for i in input.linear],
         ids = [f"-i {i}" for i in config["samples"][0].split("-")],
     output:
-        png = out+"/h{heritability}/b{beta}/manhattan.pdf",
+        png = out+"h{heritability}/b{beta}/manhattan.pdf",
     resources:
         runtime="0:02:00"
     log:
-        out+"/logs/manhattan/h{heritability}/b{beta}/manhattan.log"
+        out+"logs/manhattan/h{heritability}/b{beta}/manhattan.log"
     benchmark:
-        out+"/bench/manhattan/h{heritability}/b{beta}/manhattan.txt"
+        out+"bench/manhattan/h{heritability}/b{beta}/manhattan.txt"
     conda:
         "../envs/default.yml"
     shell:
