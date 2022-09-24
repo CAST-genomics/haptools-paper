@@ -30,7 +30,7 @@ rule transform:
     benchmark:
         out+"bench/transform/{samp}.txt"
     conda:
-        "../envs/default.yml"
+        "../envs/haptools.yml"
     shell:
         "haptools transform -v INFO -o {output.gts} {input.gts} {input.hap} &> {log}"
 
@@ -50,7 +50,7 @@ rule merge:
     benchmark:
         out+"bench/merge/{samp}.txt"
     conda:
-        "../envs/default.yml"
+        "../envs/haptools.yml"
     shell:
         "plink2 --pfile {input.gts} --pmerge {input.hps} --out {params.prefix} &> {log}"
 

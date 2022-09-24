@@ -32,7 +32,7 @@ rule sim_gts:
     benchmark:
         out+"bench/sim_gts/{samp}.txt"
     conda:
-        "../envs/default.yml"
+        "../envs/haptools.yml"
     shell:
         "haptools simgenotype --invcf {input.ref} --sample_info {input.samps} "
         "--model {input.model} --mapdir {input.mapdir} --chroms {params.chroms} "
@@ -92,7 +92,7 @@ rule transform:
     benchmark:
         out+"bench/transform/{type}/{samp}.txt"
     conda:
-        "../envs/default.yml"
+        "../envs/haptools.yml"
     shell:
         "haptools transform -v INFO {params.ancs} -o {output.gts} "
         "--region {params.region} {input.gts} {input.hap} &> {log} && "

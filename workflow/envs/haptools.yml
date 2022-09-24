@@ -1,0 +1,6 @@
+channels:
+  - conda-forge
+dependencies:
+  - conda-forge::pip
+  - pip:
+    - git+https://github.com/cast-genomics/haptools.git@6e98f183459a036a59c006d5a9d260c94ab92867#egg=haptools[files]
