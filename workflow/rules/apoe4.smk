@@ -22,9 +22,11 @@ rule transform:
         gts = config["hap_vars"],
         hap = lambda wildcards: str(config["hap_files"][wildcards.samp]),
     output:
-        gts = out+"transform/{samp}.pgen"
+        pgen = temp(out+"transform/{samp}.pgen"),
+        pvar = temp(out+"transform/{samp}.pvar"),
+        psam = temp(out+"transform/{samp}.psam"),
     resources:
-        runtime="0:01:00"
+        runtime="0:00:30"
     log:
         out+"logs/transform/{samp}.log"
     benchmark:
@@ -32,31 +34,13 @@ rule transform:
     conda:
         "../envs/haptools.yml"
     shell:
-        "haptools transform -v INFO -o {output.gts} {input.gts} {input.hap} &> {log}"
-
-rule merge:
-    input:
-        gts = config["hap_vars"],
-        hps = rules.transform.output.gts,
-    params:
-        prefix = lambda w, output: Path(output.gts).with_suffix(""),
-    output:
-        log = temp(out+"merge/{samp}.log"),
-        gts = out+"merge/{samp}.pgen",
-    resources:
-        runtime="0:01:00"
-    log:
-        out+"logs/merge/{samp}.log"
-    benchmark:
-        out+"bench/merge/{samp}.txt"
-    conda:
-        "../envs/haptools.yml"
-    shell:
-        "plink2 --pfile {input.gts} --pmerge {input.hps} --out {params.prefix} &> {log}"
+        "haptools transform -v INFO -o {output.pgen} {input.gts} {input.hap} &> {log}"
 
 rule sim_pts:
     input:
-        gts = rules.transform.output.gts,
+        pgen = rules.transform.output.pgen,
+        pvar = rules.transform.output.pvar,
+        psam = rules.transform.output.psam,
         hap = lambda wildcards: str(config["hap_files"][wildcards.samp]),
     params:
         beta = lambda wildcards: wildcards.beta,
@@ -64,25 +48,55 @@ rule sim_pts:
     output:
         pts = out+"h{heritability}/b{beta}/{samp}.pheno",
     resources:
-        runtime="0:01:00"
+        runtime="0:00:30"
     log:
         out+"logs/sim_pts/h{heritability}/b{beta}/{samp}.log"
     benchmark:
         out+"bench/sim_pts/h{heritability}/b{beta}/{samp}.txt"
     conda:
+        "../envs/haptools.yml"
+    shell:
+        "haptools simphenotype -o {output.pts} -h {params.h2} -v DEBUG {input.pgen} "
+        "<( sed 's/EUR\\t0.99$/EUR\\t{params.beta}/' {input.hap} ) &>{log}"
+
+rule merge:
+    input:
+        gts = config["genotypes"],
+        gts_pvar = config["genotypes"].with_suffix(".pvar"),
+        gts_psam = config["genotypes"].with_suffix(".psam"),
+        hps = rules.transform.output.pgen,
+        hps_pvar = rules.transform.output.pvar,
+        hps_psam = rules.transform.output.psam,
+    params:
+        gts_prefix = lambda w, input: Path(input.gts).with_suffix(""),
+        hps_prefix = lambda w, input: Path(input.hps).with_suffix(""),
+        prefix = lambda w, output: Path(output.pgen).with_suffix(""),
+    output:
+        log = temp(out+"merge/{samp}.log"),
+        pgen = out+"merge/{samp}.pgen",
+        pvar = out+"merge/{samp}.pvar",
+        psam = out+"merge/{samp}.psam",
+    resources:
+        runtime="0:01:00"
+    log:
+        out+"logs/merge/{samp}.log"
+    benchmark:
+        out+"bench/merge/{samp}.txt"
+    conda:
         "../envs/default.yml"
     shell:
-        "haptools simphenotype -o {output.pts} -h {params.h2} -v DEBUG {input.gts} "
-        "<( sed 's/EUR\\t0.99$/EUR\\t{params.beta}/' {input.hap} ) &>{log}"
+        "plink2 --pfile {params.gts_prefix} --pmerge {params.hps_prefix} "
+        "--out {params.prefix} &> {log}"
 
 rule gwas:
     input:
-        gts = str(config["genotypes"]),
+        pgen = rules.merge.output.pgen,
+        pvar = rules.merge.output.pvar,
+        psam = rules.merge.output.psam,
         pts = rules.sim_pts.output.pts,
     params:
-        pgen_prefix = lambda w, input: Path(input.gts).with_suffix(""),
+        in_prefix = lambda w, input: Path(input.pgen).with_suffix(""),
         out_prefix = lambda w, output: Path(output.log).with_suffix(""),
-        name = lambda wildcards: wildcards.samp,
     output:
         log = temp(out+"h{heritability}/b{beta}/{samp}.log"),
         linear = out+"h{heritability}/b{beta}/{samp}.{samp}.glm.linear",
@@ -96,8 +110,8 @@ rule gwas:
     conda:
         "../envs/default.yml"
     shell:
-        "plink2 --glm dominant --variance-standardize {params.name} "
-        "--pheno {input.pts} --pfile {params.pgen_prefix} --out {params.out_prefix} "
+        "plink2 --linear --variance-standardize "
+        "--pheno {input.pts} --pfile {params.in_prefix} --out {params.out_prefix} "
         "--threads {threads} &>{log} || true"
 
 rule manhattan:
