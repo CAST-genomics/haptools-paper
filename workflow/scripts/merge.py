@@ -13,6 +13,15 @@ from haptools.data import GenotypesPLINK
 def main(file1: Path, file2: Path, output: Path):
     """
     Merge variants from two PGEN files that have the same set of samples
+
+    Parameters
+    ----------
+    file1: Path
+        The path to the first pgen file
+    file2: Path
+        The path to the second pgen file
+    output: Path
+        The path to the output pgen file
     """
     gts1 = GenotypesPLINK(file1)
     gts2 = GenotypesPLINK(file2)
@@ -20,6 +29,9 @@ def main(file1: Path, file2: Path, output: Path):
 
     gts1.read()
     gts2.read()
+
+    gts1.check_phase()
+    gts2.check_phase()
 
     assert gts1.samples == gts2.samples
 
