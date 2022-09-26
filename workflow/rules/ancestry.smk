@@ -9,6 +9,11 @@ config["region"] = tuple(map(str, (
     int(config["region"][1] - 1e6),
     int(config["region"][1] + 1e6),
 )))
+config["hap"] = Path(config["hap"])
+snp_id = config["hap"].with_suffix("")
+if snp_id.suffix == ".hap":
+    snp_id = snp_id.with_suffix("")
+snp_id = str(snp_id.name)
 
 
 rule sim_gts:
@@ -70,45 +75,22 @@ rule transform:
         bkpt = rules.sim_gts.output.bkpt,
         hap = config["hap"],
     params:
-        ancs = lambda wildcards: ["", "--ancestry"][wildcards.type == "ancestry"],
         region = config["region"][0]+":"+"-".join(config["region"][1:]),
     output:
-        pgen = temp(out+"transform/{type}/{samp}.pgen"),
-        pvar = temp(out+"transform/{type}/{samp}.pvar"),
-        psam = temp(out+"transform/{type}/{samp}.psam"),
+        pgen = temp(out+"transform/{samp}.pgen"),
+        pvar = temp(out+"transform/{samp}.pvar"),
+        psam = temp(out+"transform/{samp}.psam"),
     resources:
         runtime="0:00:30"
     log:
-        out+"logs/transform/{type}/{samp}.log"
+        out+"logs/transform/{samp}.log"
     benchmark:
-        out+"bench/transform/{type}/{samp}.txt"
+        out+"bench/transform/{samp}.txt"
     conda:
         "../envs/haptools.yml"
     shell:
-        "haptools transform -v INFO {params.ancs} -o {output.pgen} "
+        "haptools transform -v INFO --ancestry -o {output.pgen} "
         "--region {params.region} {input.pgen} {input.hap} &> {log}"
-
-rule sim_pts:
-    input:
-        pgen = rules.transform.output.pgen,
-        pvar = rules.transform.output.pvar,
-        psam = rules.transform.output.psam,
-        hap = config["hap"],
-    params:
-        beta = lambda wildcards: wildcards.beta,
-    output:
-        pts = out+"b{beta}/{type}/{samp}.pheno",
-    resources:
-        runtime="0:00:30"
-    log:
-        out+"logs/sim_pts/b{beta}/{type}/{samp}.log"
-    benchmark:
-        out+"bench/sim_pts/b{beta}/{type}/{samp}.txt"
-    conda:
-        "../envs/haptools.yml"
-    shell:
-        "haptools simphenotype -o {output.pts} -v DEBUG {input.pgen} "
-        "<( sed 's/YRI\\t0.99$/YRI\\t{params.beta}/' {input.hap} ) &>{log}"
 
 rule merge:
     input:
@@ -119,33 +101,61 @@ rule merge:
         hps_pvar = rules.transform.output.pvar,
         hps_psam = rules.transform.output.psam,
     output:
-        pgen = out+"merge/{type}/{samp}.pgen",
-        pvar = out+"merge/{type}/{samp}.pvar",
-        psam = out+"merge/{type}/{samp}.psam",
+        pgen = out+"merge/{samp}.pgen",
+        pvar = out+"merge/{samp}.pvar",
+        psam = out+"merge/{samp}.psam",
     resources:
         runtime="0:10:00"
     log:
-        out+"logs/merge/{type}/{samp}.log"
+        out+"logs/merge/{samp}.log"
     benchmark:
-        out+"bench/merge/{type}/{samp}.txt"
+        out+"bench/merge/{samp}.txt"
     threads: 1
     conda:
         "../envs/haptools.yml"
     shell:
         "workflow/scripts/merge.py {input.gts} {input.hps} {output.pgen} &> {log}"
 
+def sim_pts_input(wildcards):
+    source = rules.transform.input
+    if wildcards.type == "ancestry":
+        source = rules.merge.output
+    return {
+        "pgen": source.pgen,
+        "pvar": source.pvar,
+        "psam": source.psam,
+    }
+
+rule sim_pts:
+    input:
+        unpack(sim_pts_input),
+        hap = config["hap"],
+    params:
+        beta = lambda wildcards: wildcards.beta,
+    output:
+        pts = out+"sim_pts/b{beta}/{type}/{samp}.pheno",
+    resources:
+        runtime="0:00:30"
+    log:
+        out+"logs/sim_pts/b{beta}/{type}/{samp}.log"
+    benchmark:
+        out+"bench/sim_pts/b{beta}/{type}/{samp}.txt"
+    conda:
+        "../envs/haptools.yml"
+    shell:
+        "haptools simphenotype -o {output.pts} -v DEBUG {input.pgen} "
+        "<( zcat {input.hap} | sed 's/YRI\\t0.99$/YRI\\t{params.beta}/' ) &>{log}"
+
 rule gwas:
     input:
-        pgen = rules.merge.output.pgen,
-        pvar = rules.merge.output.pvar,
-        psam = rules.merge.output.psam,
+        unpack(sim_pts_input),
         pts = rules.sim_pts.output.pts,
     params:
         in_prefix = lambda w, input: Path(input.pgen).with_suffix(""),
         out_prefix = lambda w, output: Path(output.log).with_suffix(""),
     output:
-        log = temp(out+"b{beta}/{type}/{samp}.log"),
-        linear = out+"b{beta}/{type}/{samp}.{samp}.glm.linear",
+        log = temp(out+"sim_pts/b{beta}/{type}/{samp}.log"),
+        linear = out+"sim_pts/b{beta}/{type}/{samp}."+snp_id+".glm.linear",
     resources:
         runtime="0:05:00"
     log:
@@ -163,14 +173,14 @@ rule gwas:
 rule manhattan:
     input:
         linear = expand(
-            out+"b{beta}/{samp}.{samp}.glm.linear",
+            rules.gwas.output.linear, type="ancestry",
             samp=config["models"].keys(), allow_missing=True,
         ),
     params:
         linear = lambda wildcards, input: [f"-l {i}" for i in input.linear],
         ids = [f"-i {i}" for i in list(config["models"].keys())[0].split("-")],
     output:
-        png = out+"b{beta}/manhattan.pdf",
+        png = out+"sim_pts/b{beta}/manhattan.pdf",
     resources:
         runtime="0:02:00"
     log:

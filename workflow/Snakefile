@@ -19,7 +19,7 @@ rule all:
             beta=config["apoe4"]["betas"],
             heritability=config["apoe4"]["heritabilities"],
         ) + expand(
-            out+"ancestry/b{beta}/{type}/{samp}.{samp}.glm.linear",
+            out+"ancestry/sim_pts/b{beta}/manhattan.pdf",
             samp=config["ancestry"]["models"].keys(),
             beta=config["ancestry"]["betas"],
             type="ancestry",

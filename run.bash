@@ -52,6 +52,7 @@ else
     --latency-wait 60 \
     --use-conda \
     --conda-frontend conda \
+    --notemp \
     --rerun-trigger {mtime,params,input,software-env} \
     -k \
     -c 12 \
