@@ -24,9 +24,9 @@ rule sim_gts:
         nsamps = 10*10000,
     output:
         gts = temp(out+"sim_gts/{samp}.vcf"),
-        bkpt = out+"sim_gts/{samp}-nochr.bp",
+        bkpt = out+"sim_gts/{samp}.bp",
     resources:
-        runtime="2:00:00"
+        runtime="2:30:00"
     log:
         out+"logs/sim_gts/{samp}.log"
     benchmark:
@@ -37,26 +37,7 @@ rule sim_gts:
         "haptools simgenotype --invcf {input.ref} --sample_info {input.samps} "
         "--model {input.model} --mapdir {input.mapdir} --chroms {params.chroms} "
         "--out {params.out_prefix} --region {params.region} --popsize {params.nsamps}"
-        "&> {log} && mv {params.out_prefix}/{wildcards.samp}.bp {output.bkpt} "
-        "&>> {log}"
-
-rule add_chr_to_bp:
-    input:
-        bp = rules.sim_gts.output.bkpt,
-    output:
-        bkpt = out+"sim_gts/{samp}.bp",
-    resources:
-        runtime="0:20:00"
-    log:
-        out+"logs/add_chr_to_bp/{samp}.log"
-    benchmark:
-        out+"bench/add_chr_to_bp/{samp}.txt"
-    conda:
-        "../envs/default.yml"
-    shell:
-        "awk -F $'\\t' -v 'OFS=\\t' "
-        "'$1 !~ /^Sample.*/ {{print $1, \"chr\"$2, $3, $4; next}}1' "
-        "{input.bp} > {output.bkpt} &> {log}"
+        "&> {log}"
 
 rule vcf2pgen:
     input:
@@ -69,26 +50,28 @@ rule vcf2pgen:
         pvar = out+"sim_gts/{samp}.pvar",
         psam = out+"sim_gts/{samp}.psam",
     resources:
-        runtime="0:05:00"
+        runtime="0:02:00"
     log:
-        out+"logs/index/{samp}.log"
+        out+"logs/vcf2pgen/{samp}.log"
     benchmark:
-        out+"bench/index/{samp}.txt"
+        out+"bench/vcf2pgen/{samp}.txt"
+    threads: 12
     conda:
         "../envs/default.yml"
     shell:
-        "plink2 --vcf {input.gts} --out {params.prefix} &> {log}"
+        "plink2 --vcf {input.gts} --make-pgen --snps-only --max-alleles 2 "
+        "--threads {threads} --out {params.prefix} &> {log}"
 
 rule transform:
     input:
         pgen = rules.vcf2pgen.output.pgen,
         pvar = rules.vcf2pgen.output.pvar,
         psam = rules.vcf2pgen.output.psam,
-        bkpt = rules.add_chr_to_bp.output.bkpt,
+        bkpt = rules.sim_gts.output.bkpt,
         hap = config["hap"],
     params:
         ancs = lambda wildcards: ["", "--ancestry"][wildcards.type == "ancestry"],
-        region = "chr"+config["region"][0]+":"+"-".join(config["region"][1:]),
+        region = config["region"][0]+":"+"-".join(config["region"][1:]),
     output:
         pgen = temp(out+"transform/{type}/{samp}.pgen"),
         pvar = temp(out+"transform/{type}/{samp}.pvar"),
@@ -150,11 +133,12 @@ rule merge:
         out+"logs/merge/{type}/{samp}.log"
     benchmark:
         out+"bench/merge/{type}/{samp}.txt"
+    threads: 1
     conda:
         "../envs/default.yml"
     shell:
         "plink2 --pfile {params.gts_prefix} --pmerge {params.hps_prefix} "
-        "--out {params.prefix} &> {log}"
+        "--threads {threads} --out {params.prefix} &> {log}"
 
 rule gwas:
     input:
@@ -178,9 +162,9 @@ rule gwas:
     conda:
         "../envs/default.yml"
     shell:
-        "plink2 --linear --variance-standardize "
+        "plink2 --linear allow-no-covars --variance-standardize "
         "--pheno {input.pts} --pfile {params.in_prefix} --out {params.out_prefix} "
-        "--threads {threads} &>{log} || true"
+        "--threads {threads} &>{log}"
 
 rule manhattan:
     input:
