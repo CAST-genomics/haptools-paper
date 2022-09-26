@@ -4,7 +4,7 @@ channels:
   - nodefaults
 dependencies:
   - bioconda::bcftools==1.15.1
-  - bioconda::plink2==2.00a2.3
+  - aryarm::plink2==2.00a3.6
   - conda-forge::matplotlib==3.5.2
   - conda-forge::pandas==1.4.3
   - conda-forge::click==8.1.3
