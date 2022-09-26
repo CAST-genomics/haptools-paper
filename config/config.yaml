@@ -1,10 +1,12 @@
 apoe4:
   hap_files: resources/hap_files
   haps: ["APOe4", "rs429358-rs7412"]
+  causal_hap: "APOe4"
   hap_vars: resources/apoe.vcf.gz
-  genotypes: resources/1000G_chr19.pgen
+  genotypes: resources/1000G_chr19.vcf.gz
   betas: [0.2, 0.3, 0.4]
   heritabilities: [0.4]
+  region: 19:45412010
 ancestry:
   reference: resources/1000G_chr1.vcf.gz
   sample_info: resources/1000G_AfrAmerican_sampleinfo.tsv
