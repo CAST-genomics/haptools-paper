@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #PBS -V
 #PBS -d .
-#PBS -q hotel
+#PBS -q condo
 #PBS -j oe
 #PBS -o /dev/null
 #PBS -N run.snakemake
@@ -41,6 +41,8 @@ if [ "$ENVIRONMENT" = "BATCH" ]; then
     --latency-wait 60 \
     --use-conda \
     --conda-frontend mamba \
+    --notemp \
+    --rerun-trigger {mtime,params,input,software-env} \
     -k \
     -j 12 \
     -c 12 \
@@ -50,6 +52,7 @@ else
     --latency-wait 60 \
     --use-conda \
     --conda-frontend conda \
+    --rerun-trigger {mtime,params,input,software-env} \
     -k \
     -c 12 \
     "$@" &>>"logs/qlog"
