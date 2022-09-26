@@ -97,27 +97,20 @@ rule merge:
         hps = rules.transform.output.pgen,
         hps_pvar = rules.transform.output.pvar,
         hps_psam = rules.transform.output.psam,
-    params:
-        gts_prefix = lambda w, input: Path(input.gts).with_suffix(""),
-        hps_prefix = lambda w, input: Path(input.hps).with_suffix(""),
-        prefix = lambda w, output: Path(output.pgen).with_suffix(""),
     output:
-        log = temp(out+"merge/{samp}.log"),
         pgen = out+"merge/{samp}.pgen",
         pvar = out+"merge/{samp}.pvar",
         psam = out+"merge/{samp}.psam",
     resources:
-        runtime="0:01:00"
+        runtime="0:10:00"
     log:
         out+"logs/merge/{samp}.log"
     benchmark:
         out+"bench/merge/{samp}.txt"
-    threads: 12
     conda:
-        "../envs/default.yml"
+        "../envs/haptools.yml"
     shell:
-        "plink2 --pfile {params.gts_prefix} --pmerge {params.hps_prefix} "
-        "--threads {threads} --out {params.prefix} &> {log}"
+        "workflow/scripts/merge.py {input.gts} {input.hps} {output.pgen} &> {log}"
 
 rule gwas:
     input:

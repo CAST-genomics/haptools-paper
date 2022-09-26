@@ -110,7 +110,6 @@ rule merge:
         out+"logs/merge/{samp}.log"
     benchmark:
         out+"bench/merge/{samp}.txt"
-    threads: 1
     conda:
         "../envs/haptools.yml"
     shell:
