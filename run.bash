@@ -42,7 +42,7 @@ if [ "$ENVIRONMENT" = "BATCH" ]; then
     --use-conda \
     --conda-frontend mamba \
     --notemp \
-    --rerun-trigger {mtime,params,input,software-env} \
+    --rerun-trigger {mtime,params,input} \
     -k \
     -j 12 \
     -c 12 \
@@ -53,7 +53,7 @@ else
     --use-conda \
     --conda-frontend conda \
     --notemp \
-    --rerun-trigger {mtime,params,input,software-env} \
+    --rerun-trigger {mtime,params,input} \
     -k \
     -c 12 \
     "$@" &>>"logs/qlog"
