@@ -2,6 +2,7 @@ from pathlib import Path
 
 
 out = "results/apoe4/"
+# get the "sample" names from the hap filenames
 config["hap_files"] = [
     x for x in Path(config["hap_files"]).glob("**/*")
     if x.is_file() and x.suffix == ".hap" and x.name[:-4] in config["haps"]

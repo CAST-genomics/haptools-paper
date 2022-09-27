@@ -2,6 +2,12 @@ from pathlib import Path
 
 
 out = "results/ancestry/"
+# get the ID of the causal SNP from the hap filename
+config["hap"] = Path(config["hap"])
+snp_id = config["hap"].with_suffix("")
+if snp_id.suffix == ".hap":
+    snp_id = snp_id.with_suffix("")
+snp_id = str(snp_id.name)
 # create a region param that encodes a 1 Mbp region around the given site
 config["region"] = tuple(map(int, config["snp"].split(":")))
 config["region"] = tuple(map(str, (
@@ -9,11 +15,6 @@ config["region"] = tuple(map(str, (
     int(config["region"][1] - 1e6),
     int(config["region"][1] + 1e6),
 )))
-config["hap"] = Path(config["hap"])
-snp_id = config["hap"].with_suffix("")
-if snp_id.suffix == ".hap":
-    snp_id = snp_id.with_suffix("")
-snp_id = str(snp_id.name)
 
 
 rule sim_gts:
