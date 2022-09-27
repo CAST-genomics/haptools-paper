@@ -2,7 +2,6 @@ apoe4:
   hap_files: resources/hap_files
   haps: ["APOe4", "rs429358-rs7412"]
   causal_hap: "APOe4"
-  hap_vars: resources/apoe.vcf.gz
   genotypes: resources/1000G_chr19.vcf.gz
   betas: [0.2, 0.3, 0.4]
   heritabilities: [0.4]
@@ -18,3 +17,4 @@ ancestry:
   snp: 1:109274968
   hap: resources/rs12740374.hap.gz
   betas: [0.2]
+  replicates: 100

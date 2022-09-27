@@ -20,10 +20,8 @@ rule all:
             heritability=config["apoe4"]["heritabilities"],
         ) + expand(
             out+"ancestry/sim_pts/b{beta}/manhattan.pdf",
-            samp=config["ancestry"]["models"].keys(),
             beta=config["ancestry"]["betas"],
-            type="ancestry",
-        )
+        ) + [out+"ancestry/power.pdf"]
 
 module apoe4:
     snakefile: "rules/apoe4.smk"

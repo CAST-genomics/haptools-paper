@@ -103,7 +103,7 @@ rule merge:
         pvar = out+"merge/{samp}.pvar",
         psam = out+"merge/{samp}.psam",
     resources:
-        runtime="0:10:00"
+        runtime="0:00:30"
     log:
         out+"logs/merge/{samp}.log"
     benchmark:
@@ -126,7 +126,7 @@ rule gwas:
         log = temp(out+"h{heritability}/b{beta}/{samp}.log"),
         linear = out+"h{heritability}/b{beta}/{samp}.{samp}.glm.linear",
     resources:
-        runtime="0:05:00"
+        runtime="0:00:30"
     log:
         out+"logs/gwas/h{heritability}/b{beta}/{samp}.log"
     benchmark:
@@ -151,7 +151,7 @@ rule manhattan:
     output:
         png = out+"h{heritability}/b{beta}/manhattan.pdf",
     resources:
-        runtime="0:02:00"
+        runtime="0:01:00"
     log:
         out+"logs/manhattan/h{heritability}/b{beta}/manhattan.log"
     benchmark:

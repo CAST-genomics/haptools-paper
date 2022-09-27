@@ -32,7 +32,7 @@ rule sim_gts:
         gts = temp(out+"sim_gts/{samp}.vcf"),
         bkpt = out+"sim_gts/{samp}.bp",
     resources:
-        runtime="2:30:00"
+        runtime="2:15:00"
     log:
         out+"logs/sim_gts/{samp}.log"
     benchmark:
@@ -106,7 +106,7 @@ rule merge:
         pvar = out+"merge/{samp}.pvar",
         psam = out+"merge/{samp}.psam",
     resources:
-        runtime="0:10:00"
+        runtime="0:01:00"
     log:
         out+"logs/merge/{samp}.log"
     benchmark:
@@ -132,6 +132,7 @@ rule sim_pts:
         hap = config["hap"],
     params:
         beta = lambda wildcards: wildcards.beta,
+        reps = config["replicates"],
     output:
         pts = out+"sim_pts/b{beta}/{type}/{samp}.pheno",
     resources:
@@ -143,8 +144,10 @@ rule sim_pts:
     conda:
         "../envs/haptools.yml"
     shell:
-        "haptools simphenotype -o {output.pts} -v DEBUG {input.pgen} "
+        "haptools simphenotype -r {params.reps} -o {output.pts} -v DEBUG {input.pgen} "
         "<( zcat {input.hap} | sed 's/YRI\\t0.99$/YRI\\t{params.beta}/' ) &>{log}"
+
+gwas_fname = "plink."+snp_id+".glm.linear"
 
 rule gwas:
     input:
@@ -154,10 +157,10 @@ rule gwas:
         in_prefix = lambda w, input: Path(input.pgen).with_suffix(""),
         out_prefix = lambda w, output: Path(output.log).with_suffix(""),
     output:
-        log = temp(out+"sim_pts/b{beta}/{type}/{samp}.log"),
-        linear = out+"sim_pts/b{beta}/{type}/{samp}."+snp_id+".glm.linear",
+        log = temp(out+"sim_pts/b{beta}/{type}/{samp}/plink.log"),
+        linear = directory(out+"sim_pts/b{beta}/{type}/{samp}"),
     resources:
-        runtime="0:05:00"
+        runtime="0:00:30"
     log:
         out+"logs/gwas/b{beta}/{type}/{samp}.log"
     benchmark:
@@ -173,16 +176,20 @@ rule gwas:
 rule manhattan:
     input:
         linear = expand(
-            rules.gwas.output.linear, type="ancestry",
-            samp=config["models"].keys(), allow_missing=True,
+            rules.gwas.output.linear,
+            type="ancestry",
+            samp=config["models"].keys(),
+            allow_missing=True,
         ),
     params:
-        linear = lambda wildcards, input: [f"-l {i}" for i in input.linear],
-        ids = [f"-i {i}" for i in list(config["models"].keys())[0].split("-")],
+        linear = lambda wildcards, input: [
+            f"-l {i}/{gwas_fname}" for i in input.linear
+        ],
+        snp = snp_id,
     output:
         png = out+"sim_pts/b{beta}/manhattan.pdf",
     resources:
-        runtime="0:02:00"
+        runtime="0:01:00"
     log:
         out+"logs/manhattan/b{beta}/manhattan.log"
     benchmark:
@@ -190,9 +197,40 @@ rule manhattan:
     conda:
         "../envs/default.yml"
     shell:
-        "workflow/scripts/manhattan.py -o {output.png} {params.linear} {params.ids} "
-        "&>{log}"
+        "workflow/scripts/manhattan.py -o {output.png} {params.linear} -i {params.snp}"
+        " &>{log}"
 
-# rule power:
-#     input:
-#         pts = 
+ancestry_pat = expand(
+    rules.gwas.output.linear,
+    type = "ancestry",
+    samp = "Admixed",
+    allow_missing=True,
+)[0]
+normal_pat = expand(
+    rules.gwas.output.linear,
+    type = "normal",
+    samp = "Admixed",
+    allow_missing=True,
+)[0]
+
+rule power:
+    input:
+        ancestry = expand(ancestry_pat, beta = config["betas"]),
+        normal = expand(normal_pat, beta = config["betas"]),
+    params:
+        ancestry = lambda wildcards: ancestry_pat,
+        normal = lambda wildcards: normal_pat,
+        snp = snp_id,
+    output:
+        png = out+"power.pdf"
+    resources:
+        runtime="0:01:00"
+    log:
+        out+"logs/power/log.log"
+    benchmark:
+        out+"bench/power/bench.txt"
+    conda:
+        "../envs/default.yml"
+    shell:
+        "workflow/scripts/power.py -o {output.png} {params.snp} "
+        "'{params.ancestry}' '{params.normal}' &>{log}"
