@@ -224,7 +224,7 @@ rule power:
     output:
         png = out+"power.pdf"
     resources:
-        runtime="0:01:00"
+        runtime="0:06:00"
     log:
         out+"logs/power/log.log"
     benchmark:

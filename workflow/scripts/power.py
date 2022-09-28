@@ -29,7 +29,7 @@ def get_paths(path: Path) -> dict:
     paths = glob(str(path).format(beta="*"))
     rgx = re.compile(str(path).format(beta="(.*)"))
     return {
-        rgx.search(p)[1]: list(Path(p).glob("*.glm.linear")) for p in paths
+        float(rgx.search(p)[1]): list(Path(p).glob("*.glm.linear")) for p in paths
     }
 
 
@@ -124,9 +124,16 @@ def main(snp: str, ancestry: Path, normal: Path, output: str=sys.stdout):
             for path in paths
         )/len(paths) for beta, paths in get_paths(normal).items()
     }
+    # sort the values so they are in ascending order
+    ancestry = dict(sorted(ancestry.items(), key=lambda i: i[0]))
+    normal = dict(sorted(normal.items(), key=lambda i: i[0]))
     # now, plot these values
-    plt.plot(ancestry.values(), ancestry.keys(), linestyle="-", marker="o", figsize=(14, 8), label="ancestry")
-    plt.plot(normal.values(), normal.keys(), linestyle="-", marker="o", figsize=(14, 8), label="normal")
+    plt.figure(figsize=(14,8))
+    #plt.gca().set_xticks(ancestry.keys())
+    plt.plot(ancestry.keys(), ancestry.values(), linestyle="-", marker="o", label="ancestry")
+    plt.plot(normal.keys(), normal.values(), linestyle="--", marker="s", label="normal")
+    plt.ylabel("Power")
+    plt.xlabel("Effect size")
     plt.legend()
     plt.savefig(output)
 
