@@ -82,7 +82,7 @@ rule transform:
         pvar = temp(out+"transform/{samp}.pvar"),
         psam = temp(out+"transform/{samp}.psam"),
     resources:
-        runtime="0:00:30"
+        runtime="0:01:00"
     log:
         out+"logs/transform/{samp}.log"
     benchmark:
@@ -136,7 +136,7 @@ rule sim_pts:
     output:
         pts = out+"sim_pts/b{beta}/{type}/{samp}.pheno",
     resources:
-        runtime="0:00:30"
+        runtime="0:01:00"
     log:
         out+"logs/sim_pts/b{beta}/{type}/{samp}.log"
     benchmark:
@@ -160,7 +160,7 @@ rule gwas:
         log = temp(out+"sim_pts/b{beta}/{type}/{samp}/plink.log"),
         linear = directory(out+"sim_pts/b{beta}/{type}/{samp}"),
     resources:
-        runtime="0:00:30"
+        runtime="0:01:00"
     log:
         out+"logs/gwas/b{beta}/{type}/{samp}.log"
     benchmark:
@@ -189,7 +189,7 @@ rule manhattan:
     output:
         png = out+"sim_pts/b{beta}/manhattan.pdf",
     resources:
-        runtime="0:01:00"
+        runtime="0:03:00"
     log:
         out+"logs/manhattan/b{beta}/manhattan.log"
     benchmark:
