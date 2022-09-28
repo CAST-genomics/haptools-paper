@@ -19,11 +19,9 @@ rule all:
             beta=config["apoe4"]["betas"],
             heritability=config["apoe4"]["heritabilities"],
         ) + expand(
-            out+"ancestry/b{beta}/{type}/{samp}.{samp}.glm.linear",
-            samp=config["ancestry"]["models"].keys(),
+            out+"ancestry/sim_pts/b{beta}/manhattan.pdf",
             beta=config["ancestry"]["betas"],
-            type="ancestry",
-        )
+        ) + [out+"ancestry/power.pdf"]
 
 module apoe4:
     snakefile: "rules/apoe4.smk"

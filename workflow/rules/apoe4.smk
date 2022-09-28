@@ -2,6 +2,7 @@ from pathlib import Path
 
 
 out = "results/apoe4/"
+# get the "sample" names from the hap filenames
 config["hap_files"] = [
     x for x in Path(config["hap_files"]).glob("**/*")
     if x.is_file() and x.suffix == ".hap" and x.name[:-4] in config["haps"]
@@ -9,54 +10,68 @@ config["hap_files"] = [
 config["samples"] = [x.name[:-4] for x in config["hap_files"]]
 config["hap_files"] = dict(zip(config["samples"], config["hap_files"]))
 config["genotypes"] = Path(config["genotypes"])
+# create a region param that encodes a 1 Mbp region around the given site
+config["region"] = tuple(map(int, config["region"].split(":")))
+config["region"] = tuple(map(str, (
+    config["region"][0],
+    int(config["region"][1] - (1e6/2)),
+    int(config["region"][1] + (1e6/2)),
+)))
 
-rule all:
+
+rule vcf2pgen:
     input:
-        expand(
-            "h{heritability}/b{beta}/manhattan.pdf",
-            beta=config["betas"], heritability=config["heritabilities"],
-        )
+        gts = config["genotypes"],
+    params:
+        prefix = lambda w, output: Path(output.pgen).with_suffix(""),
+        chrom = config["region"][0],
+        from_bp = config["region"][1],
+        to_bp = config["region"][2],
+    output:
+        log = temp(out+"vcf2pgen/1000G_chr19.log"),
+        pgen = out+"vcf2pgen/1000G_chr19.pgen",
+        pvar = out+"vcf2pgen/1000G_chr19.pvar",
+        psam = out+"vcf2pgen/1000G_chr19.psam",
+    resources:
+        runtime="0:02:00"
+    log:
+        out+"logs/vcf2pgen/1000G_chr19.log"
+    benchmark:
+        out+"bench/vcf2pgen/1000G_chr19.txt"
+    threads: 12
+    conda:
+        "../envs/default.yml"
+    shell:
+        "plink2 --vcf {input.gts} --make-pgen --snps-only --max-alleles 2 "
+        "--threads {threads} --chr {params.chrom} --from-bp {params.from_bp} "
+        "--to-bp {params.to_bp} --out {params.prefix} &> {log}"
 
 rule transform:
     input:
-        gts = config["hap_vars"],
+        pgen = rules.vcf2pgen.output.pgen,
+        pvar = rules.vcf2pgen.output.pvar,
+        psam = rules.vcf2pgen.output.psam,
         hap = lambda wildcards: str(config["hap_files"][wildcards.samp]),
     output:
-        gts = out+"transform/{samp}.pgen"
+        pgen = temp(out+"transform/{samp}.pgen"),
+        pvar = temp(out+"transform/{samp}.pvar"),
+        psam = temp(out+"transform/{samp}.psam"),
     resources:
-        runtime="0:01:00"
+        runtime="0:00:30"
     log:
         out+"logs/transform/{samp}.log"
     benchmark:
         out+"bench/transform/{samp}.txt"
     conda:
-        "../envs/default.yml"
+        "../envs/haptools.yml"
     shell:
-        "haptools transform -v INFO -o {output.gts} {input.gts} {input.hap} &> {log}"
-
-rule merge:
-    input:
-        gts = config["hap_vars"],
-        hps = rules.transform.output.gts,
-    params:
-        prefix = lambda w, output: Path(output.gts).with_suffix(""),
-    output:
-        log = temp(out+"merge/{samp}.log"),
-        gts = out+"merge/{samp}.pgen",
-    resources:
-        runtime="0:01:00"
-    log:
-        out+"logs/merge/{samp}.log"
-    benchmark:
-        out+"bench/merge/{samp}.txt"
-    conda:
-        "../envs/default.yml"
-    shell:
-        "plink2 --pfile {input.gts} --pmerge {input.hps} --out {params.prefix} &> {log}"
+        "haptools transform -v INFO -o {output.pgen} {input.pgen} {input.hap} &> {log}"
 
 rule sim_pts:
     input:
-        gts = rules.transform.output.gts,
+        pgen = rules.transform.output.pgen,
+        pvar = rules.transform.output.pvar,
+        psam = rules.transform.output.psam,
         hap = lambda wildcards: str(config["hap_files"][wildcards.samp]),
     params:
         beta = lambda wildcards: wildcards.beta,
@@ -64,30 +79,54 @@ rule sim_pts:
     output:
         pts = out+"h{heritability}/b{beta}/{samp}.pheno",
     resources:
-        runtime="0:01:00"
+        runtime="0:00:30"
     log:
         out+"logs/sim_pts/h{heritability}/b{beta}/{samp}.log"
     benchmark:
         out+"bench/sim_pts/h{heritability}/b{beta}/{samp}.txt"
     conda:
-        "../envs/default.yml"
+        "../envs/haptools.yml"
     shell:
-        "haptools simphenotype -o {output.pts} -h {params.h2} -v DEBUG {input.gts} "
+        "haptools simphenotype -o {output.pts} -h {params.h2} -v DEBUG {input.pgen} "
         "<( sed 's/EUR\\t0.99$/EUR\\t{params.beta}/' {input.hap} ) &>{log}"
+
+rule merge:
+    input:
+        gts = rules.vcf2pgen.output.pgen,
+        gts_pvar = rules.vcf2pgen.output.pvar,
+        gts_psam = rules.vcf2pgen.output.psam,
+        hps = rules.transform.output.pgen,
+        hps_pvar = rules.transform.output.pvar,
+        hps_psam = rules.transform.output.psam,
+    output:
+        pgen = out+"merge/{samp}.pgen",
+        pvar = out+"merge/{samp}.pvar",
+        psam = out+"merge/{samp}.psam",
+    resources:
+        runtime="0:00:30"
+    log:
+        out+"logs/merge/{samp}.log"
+    benchmark:
+        out+"bench/merge/{samp}.txt"
+    conda:
+        "../envs/haptools.yml"
+    shell:
+        "workflow/scripts/merge.py {input.gts} {input.hps} {output.pgen} &> {log}"
 
 rule gwas:
     input:
-        gts = str(config["genotypes"]),
+        pgen = rules.merge.output.pgen.format(samp=config["causal_hap"]),
+        pvar = rules.merge.output.pvar.format(samp=config["causal_hap"]),
+        psam = rules.merge.output.psam.format(samp=config["causal_hap"]),
         pts = rules.sim_pts.output.pts,
     params:
-        pgen_prefix = lambda w, input: Path(input.gts).with_suffix(""),
+        in_prefix = lambda w, input: Path(input.pgen).with_suffix(""),
         out_prefix = lambda w, output: Path(output.log).with_suffix(""),
-        name = lambda wildcards: wildcards.samp,
     output:
         log = temp(out+"h{heritability}/b{beta}/{samp}.log"),
         linear = out+"h{heritability}/b{beta}/{samp}.{samp}.glm.linear",
     resources:
-        runtime="0:05:00"
+        runtime="0:00:30"
     log:
         out+"logs/gwas/h{heritability}/b{beta}/{samp}.log"
     benchmark:
@@ -96,9 +135,9 @@ rule gwas:
     conda:
         "../envs/default.yml"
     shell:
-        "plink2 --glm dominant --variance-standardize {params.name} "
-        "--pheno {input.pts} --pfile {params.pgen_prefix} --out {params.out_prefix} "
-        "--threads {threads} &>{log} || true"
+        "plink2 --linear allow-no-covars --variance-standardize "
+        "--pheno {input.pts} --pfile {params.in_prefix} --out {params.out_prefix} "
+        "--threads {threads} &>{log}"
 
 rule manhattan:
     input:
@@ -112,7 +151,7 @@ rule manhattan:
     output:
         png = out+"h{heritability}/b{beta}/manhattan.pdf",
     resources:
-        runtime="0:02:00"
+        runtime="0:01:00"
     log:
         out+"logs/manhattan/h{heritability}/b{beta}/manhattan.log"
     benchmark:

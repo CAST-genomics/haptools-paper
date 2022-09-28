@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 
-import re
 import sys
 import click
 import numpy as np
@@ -56,6 +55,7 @@ def main(linear=[sys.stdin], output=sys.stdout, ids=[]):
         "SE": "se",
         "T_STAT": "tstat",
         "P": "pval",
+        "ERRCODE": "error",
     }
     keep_cols = ["chromosome", "pos", "id", "beta", "se", "pval"]
 
