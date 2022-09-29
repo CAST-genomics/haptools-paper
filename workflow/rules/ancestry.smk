@@ -147,8 +147,6 @@ rule sim_pts:
         "haptools simphenotype -r {params.reps} -o {output.pts} -v DEBUG {input.pgen} "
         "<( zcat {input.hap} | sed 's/YRI\\t0.99$/YRI\\t{params.beta}/' ) &>{log}"
 
-gwas_fname = "plink."+snp_id+".glm.linear"
-
 rule gwas:
     input:
         unpack(sim_pts_input),
@@ -157,7 +155,7 @@ rule gwas:
         in_prefix = lambda w, input: Path(input.pgen).with_suffix(""),
         out_prefix = lambda w, output: Path(output.log).with_suffix(""),
     output:
-        log = temp(out+"sim_pts/b{beta}/{type}/{samp}/plink.log"),
+        log = temp(out+"sim_pts/b{beta}/{type}/{samp}/{samp}.log"),
         linear = directory(out+"sim_pts/b{beta}/{type}/{samp}"),
     resources:
         runtime="0:01:00"
@@ -183,7 +181,8 @@ rule manhattan:
         ),
     params:
         linear = lambda wildcards, input: [
-            f"-l {i}/{gwas_fname}" for i in input.linear
+            f"-l {i}/{samp}."+snp_id+".glm.linear"
+            for i, samp in zip(input.linear, config["models"].keys())
         ],
         snp = snp_id,
     output:

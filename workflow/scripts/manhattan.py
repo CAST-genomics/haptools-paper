@@ -72,14 +72,12 @@ def main(linear=[sys.stdin], output=sys.stdout, ids=[]):
             header=0,
             names=plink_cols.values(),
             usecols=keep_cols,
-        )
-        # throw out anything outside of a 1 Mbp window around the peak
-        width = 1e6 / 3
-        max_idx = min(df.index, key=lambda i: df.iloc[i]["pval"])
-        max_pos = df.iloc[max_idx]["pos"]
-        df = df[(df["pos"] > max_pos-width) & (df["pos"] < max_pos+width)]
-        # -log_10(pvalue)
+        ).sort_values("pos")
+        # replace NaN with inf
+        df["pval"] = df["pval"].fillna(np.inf)
         df['-log10(p)'] = -np.log(df["pval"])
+        # replace -infinity values with 0
+        df['-log10(p)'].replace([-np.inf], 0, inplace=True)
         df.chromosome = df.chromosome.astype('category')
         df.chromosome = df.chromosome.astype(
             CategoricalDtype(sorted(map(int, df.chromosome.dtype.categories)), ordered=True)
