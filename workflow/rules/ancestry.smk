@@ -32,7 +32,7 @@ rule sim_gts:
         gts = temp(out+"sim_gts/{samp}.vcf"),
         bkpt = out+"sim_gts/{samp}.bp",
     resources:
-        runtime="2:15:00"
+        runtime="3:00:00"
     log:
         out+"logs/sim_gts/{samp}.log"
     benchmark:
@@ -56,7 +56,7 @@ rule vcf2pgen:
         pvar = out+"sim_gts/{samp}.pvar",
         psam = out+"sim_gts/{samp}.psam",
     resources:
-        runtime="0:02:00"
+        runtime="0:05:00"
     log:
         out+"logs/vcf2pgen/{samp}.log"
     benchmark:
@@ -82,7 +82,7 @@ rule transform:
         pvar = temp(out+"transform/{samp}.pvar"),
         psam = temp(out+"transform/{samp}.psam"),
     resources:
-        runtime="0:01:00"
+        runtime="0:04:00"
     log:
         out+"logs/transform/{samp}.log"
     benchmark:
@@ -106,7 +106,7 @@ rule merge:
         pvar = out+"merge/{samp}.pvar",
         psam = out+"merge/{samp}.psam",
     resources:
-        runtime="0:01:00"
+        runtime="0:08:00"
     log:
         out+"logs/merge/{samp}.log"
     benchmark:
@@ -136,7 +136,7 @@ rule sim_pts:
     output:
         pts = out+"sim_pts/b{beta}/{type}/{samp}.pheno",
     resources:
-        runtime="0:01:00"
+        runtime="0:04:00"
     log:
         out+"logs/sim_pts/b{beta}/{type}/{samp}.log"
     benchmark:
@@ -149,7 +149,9 @@ rule sim_pts:
 
 rule gwas:
     input:
-        unpack(sim_pts_input),
+        pgen = rules.transform.input.pgen,
+        pvar = rules.transform.input.pvar,
+        psam = rules.transform.input.psam,
         pts = rules.sim_pts.output.pts,
     params:
         in_prefix = lambda w, input: Path(input.pgen).with_suffix(""),
@@ -158,7 +160,7 @@ rule gwas:
         log = temp(out+"sim_pts/b{beta}/{type}/{samp}/{samp}.log"),
         linear = directory(out+"sim_pts/b{beta}/{type}/{samp}"),
     resources:
-        runtime="0:01:00"
+        runtime="0:04:00"
     log:
         out+"logs/gwas/b{beta}/{type}/{samp}.log"
     benchmark:
@@ -188,7 +190,7 @@ rule manhattan:
     output:
         png = out+"sim_pts/b{beta}/manhattan.png",
     resources:
-        runtime="0:03:00"
+        runtime="0:04:00"
     log:
         out+"logs/manhattan/b{beta}/manhattan.log"
     benchmark:
@@ -223,7 +225,7 @@ rule power:
     output:
         png = out+"power.png"
     resources:
-        runtime="0:06:00"
+        runtime="0:05:00"
     log:
         out+"logs/power/log.log"
     benchmark:
