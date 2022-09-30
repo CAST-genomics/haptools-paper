@@ -145,7 +145,7 @@ rule sim_pts:
         "../envs/haptools.yml"
     shell:
         "haptools simphenotype -r {params.reps} -o {output.pts} -v DEBUG {input.pgen} "
-        "<( zcat {input.hap} | sed 's/YRI\\t0.99$/YRI\\t{params.beta}/' ) &>{log}"
+        "<( zcat {input.hap} | sed 's/\\t0.99$/\\t{params.beta}/' ) &>{log}"
 
 rule gwas:
     input:
@@ -186,7 +186,7 @@ rule manhattan:
         ],
         snp = snp_id,
     output:
-        png = out+"sim_pts/b{beta}/manhattan.pdf",
+        png = out+"sim_pts/b{beta}/manhattan.png",
     resources:
         runtime="0:03:00"
     log:
@@ -221,7 +221,7 @@ rule power:
         normal = lambda wildcards: normal_pat,
         snp = snp_id,
     output:
-        png = out+"power.pdf"
+        png = out+"power.png"
     resources:
         runtime="0:06:00"
     log:

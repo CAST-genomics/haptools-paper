@@ -19,9 +19,9 @@ rule all:
             beta=config["apoe4"]["betas"],
             heritability=config["apoe4"]["heritabilities"],
         ) + expand(
-            out+"ancestry/sim_pts/b{beta}/manhattan.pdf",
+            out+"ancestry/sim_pts/b{beta}/manhattan.png",
             beta=config["ancestry"]["betas"],
-        ) + [out+"ancestry/power.pdf"]
+        ) + [out+"ancestry/power.png"]
 
 module apoe4:
     snakefile: "rules/apoe4.smk"
