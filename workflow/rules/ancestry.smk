@@ -149,7 +149,9 @@ rule sim_pts:
 
 rule gwas:
     input:
-        unpack(sim_pts_input),
+        pgen = rules.transform.input.pgen,
+        pvar = rules.transform.input.pvar,
+        psam = rules.transform.input.psam,
         pts = rules.sim_pts.output.pts,
     params:
         in_prefix = lambda w, input: Path(input.pgen).with_suffix(""),
