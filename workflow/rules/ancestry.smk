@@ -165,7 +165,7 @@ rule manhattan:
         ],
         snp = snp_id,
     output:
-        png = out+"sim_pts/b{beta}/manhattan.png",
+        png = out+"sim_pts/b{beta}/manhattan.pdf",
     resources:
         runtime="0:04:00"
     log:
@@ -200,7 +200,7 @@ rule power:
         normal = lambda wildcards: normal_pat,
         snp = snp_id,
     output:
-        png = out+"power.png"
+        png = out+"power.pdf"
     resources:
         runtime="0:05:00"
     log:

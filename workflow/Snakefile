@@ -15,13 +15,13 @@ out = "results/"
 rule all:
     input:
         expand(
-            out+"apoe4/h{heritability}/b{beta}/manhattan.pdf",
+            out+"apoe4/sim_pts/h{heritability}/b{beta}/manhattan.pdf",
             beta=config["apoe4"]["betas"],
             heritability=config["apoe4"]["heritabilities"],
         ) + expand(
-            out+"ancestry/sim_pts/b{beta}/manhattan.png",
+            out+"ancestry/sim_pts/b{beta}/manhattan.pdf",
             beta=config["ancestry"]["betas"],
-        ) + [out+"ancestry/power.png"]
+        ) + [out+"ancestry/power.pdf"]
 
 module apoe4:
     snakefile: "rules/apoe4.smk"

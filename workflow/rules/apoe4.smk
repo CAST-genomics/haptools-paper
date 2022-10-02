@@ -77,7 +77,7 @@ rule sim_pts:
         beta = lambda wildcards: wildcards.beta,
         h2 = lambda wildcards: wildcards.heritability,
     output:
-        pts = out+"h{heritability}/b{beta}/{samp}.pheno",
+        pts = out+"sim_pts/h{heritability}/b{beta}/{samp}.pheno",
     resources:
         runtime="0:00:30"
     log:
@@ -123,8 +123,8 @@ rule gwas:
         in_prefix = lambda w, input: Path(input.pgen).with_suffix(""),
         out_prefix = lambda w, output: Path(output.log).with_suffix(""),
     output:
-        log = temp(out+"h{heritability}/b{beta}/{samp}.log"),
-        linear = out+"h{heritability}/b{beta}/{samp}.{samp}.glm.linear",
+        log = temp(out+"sim_pts/h{heritability}/b{beta}/{samp}.log"),
+        linear = out+"sim_pts/h{heritability}/b{beta}/{samp}.{samp}.glm.linear",
     resources:
         runtime="0:00:30"
     log:
@@ -142,14 +142,14 @@ rule gwas:
 rule manhattan:
     input:
         linear = expand(
-            out+"h{heritability}/b{beta}/{samp}.{samp}.glm.linear",
+            out+"sim_pts/h{heritability}/b{beta}/{samp}.{samp}.glm.linear",
             samp=config["samples"], allow_missing=True,
         ),
     params:
         linear = lambda wildcards, input: [f"-l {i}" for i in input.linear],
         ids = [f"-i {i}" for i in config["samples"][0].split("-")],
     output:
-        png = out+"h{heritability}/b{beta}/manhattan.pdf",
+        png = out+"sim_pts/h{heritability}/b{beta}/manhattan.pdf",
     resources:
         runtime="0:01:00"
     log:
