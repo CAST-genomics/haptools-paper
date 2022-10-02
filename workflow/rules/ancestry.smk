@@ -176,7 +176,7 @@ rule manhattan:
         "../envs/default.yml"
     shell:
         "workflow/scripts/manhattan.py -o {output.png} {params.linear} -i {params.snp}"
-        " &>{log}"
+        " --no-label &>{log}"
 
 ancestry_pat = expand(
     rules.gwas.output.linear,

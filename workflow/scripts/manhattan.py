@@ -34,11 +34,28 @@ from pandas.api.types import CategoricalDtype
     "ids",
     multiple=True,
     type=str,
-    default=[],
+    default=tuple(),
     show_default="no IDs",
     help="Which variant IDs should we highlight in red?",
 )
-def main(linear=[sys.stdin], output=sys.stdout, ids=[]):
+@click.option(
+    "-b",
+    "--orange-id",
+    "orange_ids",
+    multiple=True,
+    type=str,
+    default=tuple(),
+    show_default="no IDs",
+    help="Which variant IDs should we highlight in blue?",
+)
+@click.option(
+    "--label/--no-label",
+    is_flag=True,
+    default=True,
+    show_default=True,
+    help="Whether to label the points by their IDs, as well",
+)
+def main(linear=[sys.stdin], output=sys.stdout, ids=tuple(), orange_ids=tuple(), label=True):
     """
     Create a manhattan plot from the results of a PLINK2 GWAS
     """
@@ -65,6 +82,7 @@ def main(linear=[sys.stdin], output=sys.stdout, ids=[]):
     # parse the .linear files
     dfs = {}
     max_pval = -1
+    red_ids = ids
     for idx, linear_fname in enumerate(linear):
         df = pd.read_csv(
             linear_fname,
@@ -73,6 +91,8 @@ def main(linear=[sys.stdin], output=sys.stdout, ids=[]):
             names=plink_cols.values(),
             usecols=keep_cols,
         ).sort_values("pos")
+        pos_range = max(df["pos"]) - min(df["pos"])
+        label_distance = pos_range/45
         # replace NaN with inf
         df["pval"] = df["pval"].fillna(np.inf)
         df['-log10(p)'] = -np.log(df["pval"])
@@ -84,10 +104,30 @@ def main(linear=[sys.stdin], output=sys.stdout, ids=[]):
         )
         df = df.sort_values('chromosome')
         # create the plot using pandas and add it to the figure
-        df[~df["id"].isin(ids)].plot(kind='scatter', x='pos', y='-log10(p)', ax=ax[idx])
-        x_ids = df[df["id"].isin(ids)]['pos']
-        y_ids = df[df["id"].isin(ids)]['-log10(p)']
-        ax[idx].scatter(x_ids, y_ids, color='red', marker='o', s=20)
+        df[~df["id"].isin(red_ids + orange_ids)].plot(kind='scatter', x='pos', y='-log10(p)', ax=ax[idx])
+        # plot red ids if there are any
+        if red_ids:
+            v_ids = df[df["id"].isin(red_ids)]['id']
+            x_ids = df[df["id"].isin(red_ids)]['pos']
+            y_ids = df[df["id"].isin(red_ids)]['-log10(p)']
+            if np.any(np.isinf(y_ids)):
+                raise ValueError(f"The p-values for {red_ids} are too powerful!")
+            ax[idx].scatter(x_ids, y_ids, color='red', marker='o', s=20)
+            if label:
+                for v_id, x_id, y_id in zip(v_ids, x_ids, y_ids):
+                    ax[idx].annotate(v_id, (x_id+label_distance, y_id))
+        # plot blue ids if there are any
+        if orange_ids:
+            v_ids = df[df["id"].isin(orange_ids)]['id']
+            x_ids = df[df["id"].isin(orange_ids)]['pos']
+            y_ids = df[df["id"].isin(orange_ids)]['-log10(p)']
+            if np.any(np.isinf(y_ids)):
+                raise ValueError(f"The p-values for {orange_ids} are too powerful!")
+            ax[idx].scatter(x_ids, y_ids, color='orange', marker='o', s=20)
+            if label:
+                for v_id, x_id, y_id in zip(v_ids, x_ids, y_ids):
+                    ax[idx].annotate(v_id, (x_id+label_distance, y_id))
+        # set title and perform cleanup/secondary tasks
         ax_name = Path(Path(linear_fname.stem).stem).stem
         ax[idx].title.set_text(ax_name.replace('-', " + "))
         ax[idx].set(xlabel=None, ylabel=None)

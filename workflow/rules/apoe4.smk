@@ -8,6 +8,7 @@ config["hap_files"] = [
     if x.is_file() and x.suffix == ".hap" and x.name[:-4] in config["haps"]
 ]
 config["samples"] = [x.name[:-4] for x in config["hap_files"]]
+assert config["causal_hap"] in config["samples"]
 config["hap_files"] = dict(zip(config["samples"], config["hap_files"]))
 config["genotypes"] = Path(config["genotypes"])
 # create a region param that encodes a 1 Mbp region around the given site
@@ -147,7 +148,8 @@ rule manhattan:
         ),
     params:
         linear = lambda wildcards, input: [f"-l {i}" for i in input.linear],
-        ids = [f"-i {i}" for i in config["samples"][0].split("-")],
+        red_ids = [f"-i {i}" for i in config["samples"][0].split("-")],
+        orange_ids = "-b "+config["causal_hap"],
     output:
         png = out+"sim_pts/h{heritability}/b{beta}/manhattan.pdf",
     resources:
@@ -159,5 +161,5 @@ rule manhattan:
     conda:
         "../envs/default.yml"
     shell:
-        "workflow/scripts/manhattan.py -o {output.png} {params.linear} {params.ids} "
-        "&>{log}"
+        "workflow/scripts/manhattan.py -o {output.png} {params.linear} "
+        "{params.red_ids} {params.orange_ids} &>{log}"
