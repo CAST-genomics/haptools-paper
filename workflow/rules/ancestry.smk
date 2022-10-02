@@ -93,33 +93,10 @@ rule transform:
         "haptools transform -v INFO --ancestry -o {output.pgen} "
         "--region {params.region} {input.pgen} {input.hap} &> {log}"
 
-rule merge:
-    input:
-        gts = rules.transform.input.pgen,
-        gts_pvar = rules.transform.input.pvar,
-        gts_psam = rules.transform.input.psam,
-        hps = rules.transform.output.pgen,
-        hps_pvar = rules.transform.output.pvar,
-        hps_psam = rules.transform.output.psam,
-    output:
-        pgen = out+"merge/{samp}.pgen",
-        pvar = out+"merge/{samp}.pvar",
-        psam = out+"merge/{samp}.psam",
-    resources:
-        runtime="0:08:00"
-    log:
-        out+"logs/merge/{samp}.log"
-    benchmark:
-        out+"bench/merge/{samp}.txt"
-    conda:
-        "../envs/haptools.yml"
-    shell:
-        "workflow/scripts/merge.py {input.gts} {input.hps} {output.pgen} &> {log}"
-
 def sim_pts_input(wildcards):
     source = rules.transform.input
     if wildcards.type == "ancestry":
-        source = rules.merge.output
+        source = rules.transform.output
     return {
         "pgen": source.pgen,
         "pvar": source.pvar,
