@@ -3,8 +3,8 @@ apoe4:
   haps: ["APOe4", "rs429358-rs7412"]
   causal_hap: "APOe4"
   genotypes: resources/1000G_chr19.vcf.gz
-  betas: [0.2, 0.3, 0.4]
-  heritabilities: [0.4]
+  betas: [0.15, 0.2, 0.3, 0.4]
+  heritabilities: [0.05, 0.1]
   region: 19:45412010
 ancestry:
   reference: resources/1000G_chr1.vcf.gz
