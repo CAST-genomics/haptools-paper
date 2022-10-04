@@ -15,7 +15,7 @@ out = "results/"
 rule all:
     input:
         expand(
-            out+"apoe4/h{heritability}/b{beta}/manhattan.pdf",
+            out+"apoe4/sim_pts/h{heritability}/b{beta}/manhattan.pdf",
             beta=config["apoe4"]["betas"],
             heritability=config["apoe4"]["heritabilities"],
         ) + expand(

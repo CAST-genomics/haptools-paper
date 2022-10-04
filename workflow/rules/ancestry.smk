@@ -32,7 +32,7 @@ rule sim_gts:
         gts = temp(out+"sim_gts/{samp}.vcf"),
         bkpt = out+"sim_gts/{samp}.bp",
     resources:
-        runtime="2:15:00"
+        runtime="3:00:00"
     log:
         out+"logs/sim_gts/{samp}.log"
     benchmark:
@@ -56,7 +56,7 @@ rule vcf2pgen:
         pvar = out+"sim_gts/{samp}.pvar",
         psam = out+"sim_gts/{samp}.psam",
     resources:
-        runtime="0:02:00"
+        runtime="0:05:00"
     log:
         out+"logs/vcf2pgen/{samp}.log"
     benchmark:
@@ -82,7 +82,7 @@ rule transform:
         pvar = temp(out+"transform/{samp}.pvar"),
         psam = temp(out+"transform/{samp}.psam"),
     resources:
-        runtime="0:01:00"
+        runtime="0:04:00"
     log:
         out+"logs/transform/{samp}.log"
     benchmark:
@@ -93,33 +93,10 @@ rule transform:
         "haptools transform -v INFO --ancestry -o {output.pgen} "
         "--region {params.region} {input.pgen} {input.hap} &> {log}"
 
-rule merge:
-    input:
-        gts = rules.transform.input.pgen,
-        gts_pvar = rules.transform.input.pvar,
-        gts_psam = rules.transform.input.psam,
-        hps = rules.transform.output.pgen,
-        hps_pvar = rules.transform.output.pvar,
-        hps_psam = rules.transform.output.psam,
-    output:
-        pgen = out+"merge/{samp}.pgen",
-        pvar = out+"merge/{samp}.pvar",
-        psam = out+"merge/{samp}.psam",
-    resources:
-        runtime="0:01:00"
-    log:
-        out+"logs/merge/{samp}.log"
-    benchmark:
-        out+"bench/merge/{samp}.txt"
-    conda:
-        "../envs/haptools.yml"
-    shell:
-        "workflow/scripts/merge.py {input.gts} {input.hps} {output.pgen} &> {log}"
-
 def sim_pts_input(wildcards):
     source = rules.transform.input
     if wildcards.type == "ancestry":
-        source = rules.merge.output
+        source = rules.transform.output
     return {
         "pgen": source.pgen,
         "pvar": source.pvar,
@@ -136,7 +113,7 @@ rule sim_pts:
     output:
         pts = out+"sim_pts/b{beta}/{type}/{samp}.pheno",
     resources:
-        runtime="0:01:00"
+        runtime="0:04:00"
     log:
         out+"logs/sim_pts/b{beta}/{type}/{samp}.log"
     benchmark:
@@ -145,22 +122,22 @@ rule sim_pts:
         "../envs/haptools.yml"
     shell:
         "haptools simphenotype -r {params.reps} -o {output.pts} -v DEBUG {input.pgen} "
-        "<( zcat {input.hap} | sed 's/YRI\\t0.99$/YRI\\t{params.beta}/' ) &>{log}"
-
-gwas_fname = "plink."+snp_id+".glm.linear"
+        "<( zcat {input.hap} | sed 's/\\t0.99$/\\t{params.beta}/' ) &>{log}"
 
 rule gwas:
     input:
-        unpack(sim_pts_input),
+        pgen = rules.transform.input.pgen,
+        pvar = rules.transform.input.pvar,
+        psam = rules.transform.input.psam,
         pts = rules.sim_pts.output.pts,
     params:
         in_prefix = lambda w, input: Path(input.pgen).with_suffix(""),
         out_prefix = lambda w, output: Path(output.log).with_suffix(""),
     output:
-        log = temp(out+"sim_pts/b{beta}/{type}/{samp}/plink.log"),
+        log = temp(out+"sim_pts/b{beta}/{type}/{samp}/{samp}.log"),
         linear = directory(out+"sim_pts/b{beta}/{type}/{samp}"),
     resources:
-        runtime="0:01:00"
+        runtime="0:04:00"
     log:
         out+"logs/gwas/b{beta}/{type}/{samp}.log"
     benchmark:
@@ -183,13 +160,14 @@ rule manhattan:
         ),
     params:
         linear = lambda wildcards, input: [
-            f"-l {i}/{gwas_fname}" for i in input.linear
+            f"-l {i}/{samp}."+snp_id+".glm.linear"
+            for i, samp in zip(input.linear, config["models"].keys())
         ],
         snp = snp_id,
     output:
         png = out+"sim_pts/b{beta}/manhattan.pdf",
     resources:
-        runtime="0:03:00"
+        runtime="0:04:00"
     log:
         out+"logs/manhattan/b{beta}/manhattan.log"
     benchmark:
@@ -198,7 +176,7 @@ rule manhattan:
         "../envs/default.yml"
     shell:
         "workflow/scripts/manhattan.py -o {output.png} {params.linear} -i {params.snp}"
-        " &>{log}"
+        " --no-label &>{log}"
 
 ancestry_pat = expand(
     rules.gwas.output.linear,
@@ -224,7 +202,7 @@ rule power:
     output:
         png = out+"power.pdf"
     resources:
-        runtime="0:06:00"
+        runtime="0:05:00"
     log:
         out+"logs/power/log.log"
     benchmark:

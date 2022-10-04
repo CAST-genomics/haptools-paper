@@ -1,10 +1,10 @@
 apoe4:
   hap_files: resources/hap_files
-  haps: ["APOe4", "rs429358-rs7412"]
   causal_hap: "APOe4"
+  snps_hap: "rs429358-rs7412"
   genotypes: resources/1000G_chr19.vcf.gz
-  betas: [0.2, 0.3, 0.4]
-  heritabilities: [0.4]
+  betas: [0.15, 0.2, 0.3, 0.4]
+  heritabilities: [0.05, 0.1]
   region: 19:45412010
 ancestry:
   reference: resources/1000G_chr1.vcf.gz
@@ -16,5 +16,5 @@ ancestry:
   mapdir: resources/map
   snp: 1:109274968
   hap: resources/rs12740374.hap.gz
-  betas: [0.01, 0.02, 0.03, 0.04, 0.045, 0.05, 0.055, 0.06, 0.07, 0.08, 0.09, 0.1]
+  betas: [0.01, 0.02, 0.03, 0.04, 0.045, 0.05, 0.055, 0.0575, 0.06, 0.0625, 0.065, 0.07, 0.075, 0.08, 0.085, 0.09, 0.095, 0.1, 0.105, 0.11, 0.12, 0.13]
   replicates: 100
