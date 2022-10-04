@@ -169,7 +169,7 @@ rule compare_gcta:
     conda:
         "../envs/default.yml"
     shell:
-        "workflow/scripts/compare_gcta.py {input} {output} &> {log}"
+        "workflow/scripts/compare_gcta.py -o {output.png} {input} &> {log}"
 
 rule merge:
     input:
