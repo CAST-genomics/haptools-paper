@@ -50,17 +50,53 @@ def main(haptools: Path, gcta: Path, output: Path):
     haptools = phens[phens["method"] == "haptools"]
     gcta = phens[phens["method"] == "gcta"]
 
-    fig, ax = plt.subplots(1, 3, figsize=(14, 8))
+    fig, ax = plt.subplots(1, 2, figsize=(14, 8))
+    haptools_color, gcta_color = tuple([plt.cm.tab10(i) for i in range(2)])
 
-    sns.histplot(data=phens, x="Phenotypes", hue="method", ax=ax[0], element="step")
+    sns.histplot(
+        data=haptools,
+        ax=ax[0],
+        x="Phenotypes",
+        color=haptools_color,
+        label="haptools",
+        element="step",
+        stat="density",
+    )
+    sns.histplot(
+        data=gcta,
+        ax=ax[0],
+        x="Phenotypes",
+        color=gcta_color,
+        label="gcta",
+        element="step",
+        stat="density",
+    )
+    ax[0].legend()
 
     x0, x1 = ax[0].get_xlim()  # extract the endpoints for the x-axis
     x_pdf = np.linspace(x0, x1, 1000)
     y_pdf = stats.norm.pdf(x_pdf)
     ax[0].plot(x_pdf, y_pdf, 'r', lw=2, label='pdf')
 
-    sm.qqplot(data=haptools["Phenotypes"], line="s", ax=ax[1])
-    sm.qqplot(data=gcta["Phenotypes"], line="s", ax=ax[2])
+    sm.qqplot(
+        data=haptools["Phenotypes"],
+        line="45",
+        ax=ax[1],
+        marker=".",
+        label="haptools",
+        markerfacecolor=haptools_color,
+        markeredgecolor=haptools_color,
+    )
+    sm.qqplot(
+        data=gcta["Phenotypes"],
+        line="45",
+        ax=ax[1],
+        marker=".",
+        label="gcta",
+        markerfacecolor=gcta_color,
+        markeredgecolor=gcta_color,
+    )
+    ax[1].legend()
 
     plt.savefig(output)
 
