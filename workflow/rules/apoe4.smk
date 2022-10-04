@@ -5,7 +5,9 @@ out = "results/apoe4/"
 # get the "sample" names from the hap filenames
 config["hap_files"] = [
     x for x in Path(config["hap_files"]).glob("**/*")
-    if x.is_file() and x.suffix == ".hap" and x.name[:-4] in config["haps"]
+    if x.is_file() and x.suffix == ".hap" and x.name[:-4] in [
+        config["causal_hap"], config["snps_hap"]
+    ]
 ]
 config["samples"] = [x.name[:-4] for x in config["hap_files"]]
 assert config["causal_hap"] in config["samples"]
@@ -34,7 +36,7 @@ rule vcf2pgen:
         pvar = out+"vcf2pgen/1000G_chr19.pvar",
         psam = out+"vcf2pgen/1000G_chr19.psam",
     resources:
-        runtime="0:02:00"
+        runtime="0:04:00"
     log:
         out+"logs/vcf2pgen/1000G_chr19.log"
     benchmark:
@@ -58,7 +60,7 @@ rule transform:
         pvar = temp(out+"transform/{samp}.pvar"),
         psam = temp(out+"transform/{samp}.psam"),
     resources:
-        runtime="0:00:30"
+        runtime="0:04:00"
     log:
         out+"logs/transform/{samp}.log"
     benchmark:
@@ -80,7 +82,7 @@ rule sim_pts:
     output:
         pts = out+"sim_pts/h{heritability}/b{beta}/{samp}.pheno",
     resources:
-        runtime="0:00:30"
+        runtime="0:04:00"
     log:
         out+"logs/sim_pts/h{heritability}/b{beta}/{samp}.log"
     benchmark:
@@ -104,7 +106,7 @@ rule merge:
         pvar = out+"merge/{samp}.pvar",
         psam = out+"merge/{samp}.psam",
     resources:
-        runtime="0:00:30"
+        runtime="0:04:00"
     log:
         out+"logs/merge/{samp}.log"
     benchmark:
@@ -127,7 +129,7 @@ rule gwas:
         log = temp(out+"sim_pts/h{heritability}/b{beta}/{samp}.log"),
         linear = out+"sim_pts/h{heritability}/b{beta}/{samp}.{samp}.glm.linear",
     resources:
-        runtime="0:00:30"
+        runtime="0:04:00"
     log:
         out+"logs/gwas/h{heritability}/b{beta}/{samp}.log"
     benchmark:
@@ -153,7 +155,7 @@ rule manhattan:
     output:
         png = out+"sim_pts/h{heritability}/b{beta}/manhattan.pdf",
     resources:
-        runtime="0:01:00"
+        runtime="0:05:00"
     log:
         out+"logs/manhattan/h{heritability}/b{beta}/manhattan.log"
     benchmark:
