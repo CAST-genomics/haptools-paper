@@ -55,6 +55,7 @@ else
     --notemp \
     --rerun-trigger {mtime,params,input} \
     -k \
+    --cores all \
     "$@" &>>"logs/qlog"
 fi
 

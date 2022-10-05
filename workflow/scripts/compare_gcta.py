@@ -61,6 +61,7 @@ def main(haptools: Path, gcta: Path, output: Path):
         label="haptools",
         element="step",
         stat="density",
+        alpha=0.25,
     )
     sns.histplot(
         data=gcta,
@@ -70,6 +71,7 @@ def main(haptools: Path, gcta: Path, output: Path):
         label="gcta",
         element="step",
         stat="density",
+        alpha=0.25,
     )
     ax[0].legend()
 
@@ -86,6 +88,7 @@ def main(haptools: Path, gcta: Path, output: Path):
         label="haptools",
         markerfacecolor=haptools_color,
         markeredgecolor=haptools_color,
+        markersize=10,
     )
     sm.qqplot(
         data=gcta["Phenotypes"],
@@ -95,6 +98,7 @@ def main(haptools: Path, gcta: Path, output: Path):
         label="gcta",
         markerfacecolor=gcta_color,
         markeredgecolor=gcta_color,
+        markersize=10,
     )
     ax[1].legend()
 
