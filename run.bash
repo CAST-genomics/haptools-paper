@@ -51,11 +51,11 @@ else
     snakemake \
     --latency-wait 60 \
     --use-conda \
-    --conda-frontend conda \
+    --conda-frontend mamba \
     --notemp \
     --rerun-trigger {mtime,params,input} \
     -k \
-    -c 12 \
+    --cores all \
     "$@" &>>"logs/qlog"
 fi
 

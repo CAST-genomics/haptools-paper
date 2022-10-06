@@ -91,7 +91,85 @@ rule sim_pts:
         "../envs/haptools.yml"
     shell:
         "haptools simphenotype -o {output.pts} -h {params.h2} -v DEBUG {input.pgen} "
-        "<( sed 's/EUR\\t0.99$/EUR\\t{params.beta}/' {input.hap} ) &>{log}"
+        "<( sed 's/\\t0.99$/\\t{params.beta}/' {input.hap} ) &>{log}"
+
+rule pgen2bed:
+    input:
+        pgen = rules.transform.output.pgen,
+        pvar = rules.transform.output.pvar,
+        psam = rules.transform.output.psam,
+    params:
+        in_prefix = lambda w, input: Path(input.pgen).with_suffix(""),
+        out_prefix = lambda w, output: Path(output.bed).with_suffix(""),
+    output:
+        log = temp(out+"pgen2bed/{samp}.log"),
+        bed = out+"pgen2bed/{samp}.bed",
+        bim = out+"pgen2bed/{samp}.bim",
+        fam = out+"pgen2bed/{samp}.fam",
+    resources:
+        runtime="0:04:00"
+    log:
+        out+"logs/pgen2bed/{samp}.log"
+    benchmark:
+        out+"bench/pgen2bed/{samp}.txt"
+    threads: 12
+    conda:
+        "../envs/default.yml"
+    shell:
+        "plink2 --pfile {params.in_prefix} --make-bed --out {params.out_prefix} &> {log}"
+
+rule gcta:
+    input:
+        bed = rules.pgen2bed.output.bed,
+        bim = rules.pgen2bed.output.bim,
+        fam = rules.pgen2bed.output.fam,
+        hap = lambda wildcards: str(config["hap_files"][wildcards.samp]),
+    params:
+        beta = lambda wildcards: wildcards.beta,
+        h2 = lambda wildcards: wildcards.heritability,
+        in_prefix = lambda w, input: Path(input.bed).with_suffix(""),
+        out_prefix = lambda w, output: Path(output.pts).with_suffix(""),
+    output:
+        pts = out+"sim_pts/h{heritability}/b{beta}/{samp}.phen",
+        par = out+"sim_pts/h{heritability}/b{beta}/{samp}.par",
+    resources:
+        runtime="0:04:00"
+    log:
+        out+"logs/gcta/h{heritability}/b{beta}/{samp}.log"
+    benchmark:
+        out+"bench/gcta/h{heritability}/b{beta}/{samp}.txt"
+    conda:
+        "../envs/gcta.yml"
+    shell:
+        "gcta64 --bfile {params.in_prefix} --simu-qt --simu-causal-loci "
+        "<(grep -E '^H' {input.hap} | cut -f5 | sed 's/$/\\t{params.beta}/') "
+        "--simu-hsq {params.h2} --simu-rep 1 --out {params.out_prefix} &> {log} && "
+        "sed -i 's/^0 //g' {output.pts} &>> {log}"
+
+rule compare_gcta:
+    input:
+        pheno = expand(
+            rules.sim_pts.output.pts,
+            samp=config["snps_hap"],
+            allow_missing=True
+        ),
+        phen = expand(
+            rules.gcta.output.pts,
+            samp=config["snps_hap"],
+            allow_missing=True
+        ),
+    output:
+        png = out+"sim_pts/h{heritability}/b{beta}/compare_gcta.pdf",
+    resources:
+        runtime="0:04:00"
+    log:
+        out+"logs/compare_gcta/h{heritability}/b{beta}/compare_gcta.log"
+    benchmark:
+        out+"bench/compare_gcta/h{heritability}/b{beta}/compare_gcta.txt"
+    conda:
+        "../envs/default.yml"
+    shell:
+        "workflow/scripts/compare_gcta.py -o {output.png} {input} &> {log}"
 
 rule merge:
     input:
