@@ -12,10 +12,33 @@ import matplotlib.pyplot as plt
 
 
 def read_pheno(path: Path) -> pd.Series:
+    plink_cols = {
+        "#CHROM": "chromosome",
+        "POS": "pos",
+        "ID": "id",
+        "REF": "ref",
+        "ALT": "alt",
+        "A1": "allele",
+        "TEST": "test",
+        "OBS_CT": "num_samps",
+        "BETA": "beta",
+        "SE": "se",
+        "T_STAT": "tstat",
+        "P": "pval",
+        "ERRCODE": "error",
+    }
+    keep_cols = ["chromosome", "pos", "id", "beta", "se", "pval"]
     df = pd.read_csv(
-        path, header=None, delim_whitespace=True, index_col=0, names=("sample", "Phenotypes"), comment="#"
-    )
-    df["Phenotypes"] = (df["Phenotypes"]-df["Phenotypes"].mean())/df["Phenotypes"].std()
+        path,
+        sep="\t",
+        header=0,
+        names=plink_cols.values(),
+        usecols=keep_cols,
+    ).sort_values('pos')
+    df["pval"] = df["pval"].fillna(np.inf)
+    df['-log10(p)'] = -np.log10(df["pval"])
+    # replace -infinity values with 0
+    df['-log10(p)'].replace([-np.inf], 0, inplace=True)
     return df
 
 @click.command()
@@ -56,21 +79,19 @@ def main(haptools: Path, gcta: Path, output: Path):
     sns.histplot(
         data=haptools,
         ax=ax[0],
-        x="Phenotypes",
+        x="-log10(p)",
         color=haptools_color,
         label="haptools",
         element="step",
-        stat="density",
         alpha=0.25,
     )
     sns.histplot(
         data=gcta,
         ax=ax[0],
-        x="Phenotypes",
+        x="-log10(p)",
         color=gcta_color,
         label="gcta",
         element="step",
-        stat="density",
         alpha=0.25,
     )
     ax[0].legend()
@@ -81,7 +102,7 @@ def main(haptools: Path, gcta: Path, output: Path):
     ax[0].plot(x_pdf, y_pdf, 'r', lw=2, label='pdf')
 
     sm.qqplot(
-        data=haptools["Phenotypes"],
+        data=haptools["-log10(p)"],
         line="45",
         ax=ax[1],
         marker=".",
@@ -91,7 +112,7 @@ def main(haptools: Path, gcta: Path, output: Path):
         markersize=10,
     )
     sm.qqplot(
-        data=gcta["Phenotypes"],
+        data=gcta["-log10(p)"],
         line="45",
         ax=ax[1],
         marker=".",
