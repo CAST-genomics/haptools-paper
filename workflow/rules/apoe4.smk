@@ -256,3 +256,34 @@ rule compare_gcta:
         "../envs/default.yml"
     shell:
         "workflow/scripts/compare_gcta.py -o {output.png} {input} &> {log}"
+
+rule compare_gcta_manhattan:
+    input:
+        pheno = expand(
+            rules.gwas.output.linear,
+            samp=config["snps_hap"],
+            meth="pt",
+            allow_missing=True
+        ),
+        phen = expand(
+            rules.gwas.output.linear,
+            samp=config["snps_hap"],
+            meth="gcta",
+            allow_missing=True
+        ),
+    params:
+        red_ids = [f"-i {i}" for i in config["snps_hap"].split("-")],
+        orange_ids = "-b "+config["causal_hap"],
+    output:
+        png = out+"sim_gcta/h{heritability}/b{beta}/manhattan.pdf",
+    resources:
+        runtime="0:04:00"
+    log:
+        out+"logs/compare_gcta/h{heritability}/b{beta}/manhattan.log"
+    benchmark:
+        out+"bench/compare_gcta/h{heritability}/b{beta}/manhattan.txt"
+    conda:
+        "../envs/default.yml"
+    shell:
+        "workflow/scripts/manhattan.py -o {output.png} -l {input.pheno} "
+        "-l {input.phen} {params.red_ids} {params.orange_ids} &>{log}"

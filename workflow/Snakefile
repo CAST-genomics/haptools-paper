@@ -19,7 +19,7 @@ rule all:
             beta=config["apoe4"]["betas"],
             heritability=config["apoe4"]["heritabilities"],
         ) + expand(
-            out+"apoe4/sim_gcta/h{heritability}/b{beta}/compare_gcta.pdf",
+            out+"apoe4/sim_gcta/h{heritability}/b{beta}/manhattan.pdf",
             beta=config["apoe4"]["betas"],
             heritability=config["apoe4"]["heritabilities"],
         ) + expand(
