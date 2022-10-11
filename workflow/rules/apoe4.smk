@@ -10,7 +10,6 @@ config["hap_files"] = [
     ]
 ]
 config["samples"] = [x.name[:-4] for x in config["hap_files"]]
-assert config["causal_hap"] in config["samples"]
 config["hap_files"] = dict(zip(config["samples"], config["hap_files"]))
 config["genotypes"] = Path(config["genotypes"])
 # create a region param that encodes a 1 Mbp region around the given site
@@ -215,7 +214,7 @@ rule manhattan:
         ),
     params:
         linear = lambda wildcards, input: [f"-l {i}" for i in input.linear],
-        red_ids = [f"-i {i}" for i in config["samples"][0].split("-")],
+        red_ids = [f"-i {i}" for i in config["snps_hap"].split("-")],
         orange_ids = "-b "+config["causal_hap"],
     output:
         png = out+"sim_pt/h{heritability}/b{beta}/manhattan.pdf",
