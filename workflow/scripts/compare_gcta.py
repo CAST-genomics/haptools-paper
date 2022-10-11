@@ -12,33 +12,15 @@ import matplotlib.pyplot as plt
 
 
 def read_pheno(path: Path) -> pd.Series:
-    plink_cols = {
-        "#CHROM": "chromosome",
-        "POS": "pos",
-        "ID": "id",
-        "REF": "ref",
-        "ALT": "alt",
-        "A1": "allele",
-        "TEST": "test",
-        "OBS_CT": "num_samps",
-        "BETA": "beta",
-        "SE": "se",
-        "T_STAT": "tstat",
-        "P": "pval",
-        "ERRCODE": "error",
-    }
-    keep_cols = ["chromosome", "pos", "id", "beta", "se", "pval"]
     df = pd.read_csv(
         path,
-        sep="\t",
-        header=0,
-        names=plink_cols.values(),
-        usecols=keep_cols,
-    ).sort_values('pos')
-    df["pval"] = df["pval"].fillna(np.inf)
-    df['-log10(p)'] = -np.log10(df["pval"])
-    # replace -infinity values with 0
-    df['-log10(p)'].replace([-np.inf], 0, inplace=True)
+        header=None,
+        delim_whitespace=True,
+        index_col=0,
+        names=("sample", "Phenotypes"),
+        comment="#",
+    )
+    # df["Phenotypes"] = (df["Phenotypes"]-df["Phenotypes"].mean())/df["Phenotypes"].std()
     return df
 
 @click.command()
@@ -66,62 +48,15 @@ def main(haptools: Path, gcta: Path, output: Path):
     output: Path
         The path to a PNG file summarizing the results
     """
+    # create a DataFrame where each row is indexed by its sample ID and
+    # the columns are ('haptools', 'gcta')
     phens = pd.concat(
         {'haptools': read_pheno(haptools), 'gcta': read_pheno(gcta)},
         ignore_index=False, names=("method", "sample"),
-    ).reset_index()
-    haptools = phens[phens["method"] == "haptools"]
-    gcta = phens[phens["method"] == "gcta"]
+    ).unstack(level=0)["Phenotypes"]
 
-    fig, ax = plt.subplots(1, 2, figsize=(14, 8))
-    haptools_color, gcta_color = tuple([plt.cm.tab10(i) for i in range(2)])
-
-    sns.histplot(
-        data=haptools,
-        ax=ax[0],
-        x="-log10(p)",
-        color=haptools_color,
-        label="haptools",
-        element="step",
-        alpha=0.25,
-    )
-    sns.histplot(
-        data=gcta,
-        ax=ax[0],
-        x="-log10(p)",
-        color=gcta_color,
-        label="gcta",
-        element="step",
-        alpha=0.25,
-    )
-    ax[0].legend()
-
-    x0, x1 = ax[0].get_xlim()  # extract the endpoints for the x-axis
-    x_pdf = np.linspace(x0, x1, 1000)
-    y_pdf = stats.norm.pdf(x_pdf)
-    ax[0].plot(x_pdf, y_pdf, 'r', lw=2, label='pdf')
-
-    sm.qqplot(
-        data=haptools["-log10(p)"],
-        line="45",
-        ax=ax[1],
-        marker=".",
-        label="haptools",
-        markerfacecolor=haptools_color,
-        markeredgecolor=haptools_color,
-        markersize=10,
-    )
-    sm.qqplot(
-        data=gcta["-log10(p)"],
-        line="45",
-        ax=ax[1],
-        marker=".",
-        label="gcta",
-        markerfacecolor=gcta_color,
-        markeredgecolor=gcta_color,
-        markersize=10,
-    )
-    ax[1].legend()
+    sns.scatterplot(data=phens, x="gcta", y="haptools")
+    plt.axline([0, 0], [1, 1])
 
     plt.savefig(output)
 
