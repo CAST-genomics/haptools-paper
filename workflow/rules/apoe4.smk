@@ -79,13 +79,13 @@ rule sim_pt:
         beta = lambda wildcards: wildcards.beta,
         h2 = lambda wildcards: wildcards.heritability,
     output:
-        pts = out+"sim_pt/h{heritability}/b{beta}/{samp}.pheno",
+        pts = out+"sim_pt/b{beta}/h{heritability}/{samp}.pheno",
     resources:
         runtime="0:04:00"
     log:
-        out+"logs/sim_pt/h{heritability}/b{beta}/{samp}.log"
+        out+"logs/sim_pt/b{beta}/h{heritability}/{samp}.log"
     benchmark:
-        out+"bench/sim_pt/h{heritability}/b{beta}/{samp}.txt"
+        out+"bench/sim_pt/b{beta}/h{heritability}/{samp}.txt"
     conda:
         "../envs/haptools.yml"
     shell:
@@ -129,14 +129,14 @@ rule sim_gcta:
         in_prefix = lambda w, input: Path(input.bed).with_suffix(""),
         out_prefix = lambda w, output: Path(output.pts).with_suffix(""),
     output:
-        par = temp(out+"sim_gcta/h{heritability}/b{beta}/{samp}.par"),
-        pts = out+"sim_gcta/h{heritability}/b{beta}/{samp}.phen",
+        par = temp(out+"sim_gcta/b{beta}/h{heritability}/{samp}.par"),
+        pts = out+"sim_gcta/b{beta}/h{heritability}/{samp}.phen",
     resources:
         runtime="0:04:00"
     log:
-        out+"logs/sim_gcta/h{heritability}/b{beta}/{samp}.log"
+        out+"logs/sim_gcta/b{beta}/h{heritability}/{samp}.log"
     benchmark:
-        out+"bench/sim_gcta/h{heritability}/b{beta}/{samp}.txt"
+        out+"bench/sim_gcta/b{beta}/h{heritability}/{samp}.txt"
     conda:
         "../envs/gcta.yml"
     shell:
@@ -188,14 +188,14 @@ rule gwas:
             if wildcards.meth == "gcta" else "true"
         ),
     output:
-        log = temp(out+"sim_{meth}/h{heritability}/b{beta}/{samp}.log"),
-        linear = out+"sim_{meth}/h{heritability}/b{beta}/{samp}.{samp}.glm.linear",
+        log = temp(out+"sim_{meth}/b{beta}/h{heritability}/{samp}.log"),
+        linear = out+"sim_{meth}/b{beta}/h{heritability}/{samp}.{samp}.glm.linear",
     resources:
         runtime="0:04:00"
     log:
-        out+"logs/gwas/{meth}/h{heritability}/b{beta}/{samp}.log"
+        out+"logs/gwas/{meth}/b{beta}/h{heritability}/{samp}.log"
     benchmark:
-        out+"bench/gwas/{meth}/h{heritability}/b{beta}/{samp}.txt"
+        out+"bench/gwas/{meth}/b{beta}/h{heritability}/{samp}.txt"
     threads: 1
     conda:
         "../envs/default.yml"
@@ -217,13 +217,13 @@ rule manhattan:
         red_ids = [f"-i {i}" for i in config["snps_hap"].split("-")],
         orange_ids = "-b "+config["causal_hap"],
     output:
-        png = out+"sim_pt/h{heritability}/b{beta}/manhattan.pdf",
+        png = out+"sim_pt/b{beta}/h{heritability}/manhattan.pdf",
     resources:
         runtime="0:05:00"
     log:
-        out+"logs/manhattan/h{heritability}/b{beta}/manhattan.log"
+        out+"logs/manhattan/b{beta}/h{heritability}/manhattan.log"
     benchmark:
-        out+"bench/manhattan/h{heritability}/b{beta}/manhattan.txt"
+        out+"bench/manhattan/b{beta}/h{heritability}/manhattan.txt"
     conda:
         "../envs/default.yml"
     shell:
@@ -245,13 +245,13 @@ rule compare_gcta:
             allow_missing=True
         ),
     output:
-        png = out+"sim_gcta/h{heritability}/b{beta}/compare_gcta.pdf",
+        png = out+"sim_gcta/b{beta}/h{heritability}/compare_gcta.pdf",
     resources:
         runtime="0:04:00"
     log:
-        out+"logs/compare_gcta/h{heritability}/b{beta}/compare_gcta.log"
+        out+"logs/compare_gcta/b{beta}/h{heritability}/compare_gcta.log"
     benchmark:
-        out+"bench/compare_gcta/h{heritability}/b{beta}/compare_gcta.txt"
+        out+"bench/compare_gcta/b{beta}/h{heritability}/compare_gcta.txt"
     conda:
         "../envs/default.yml"
     shell:
@@ -275,13 +275,13 @@ rule compare_gcta_manhattan:
         red_ids = [f"-i {i}" for i in config["snps_hap"].split("-")],
         orange_ids = "-b "+config["causal_hap"],
     output:
-        png = out+"sim_gcta/h{heritability}/b{beta}/manhattan.pdf",
+        png = out+"sim_gcta/b{beta}/h{heritability}/manhattan.pdf",
     resources:
         runtime="0:04:00"
     log:
-        out+"logs/compare_gcta/h{heritability}/b{beta}/manhattan.log"
+        out+"logs/compare_gcta_manhattan/b{beta}/h{heritability}/manhattan.log"
     benchmark:
-        out+"bench/compare_gcta/h{heritability}/b{beta}/manhattan.txt"
+        out+"bench/compare_gcta_manhattan/b{beta}/h{heritability}/manhattan.txt"
     conda:
         "../envs/default.yml"
     shell:
