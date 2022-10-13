@@ -15,10 +15,17 @@ out = "results/"
 rule all:
     input:
         expand(
-            out+"apoe4/sim_pts/h{heritability}/b{beta}/{plot_type}.pdf",
+            out+"apoe4/sim_pt/b{beta}/h{heritability}/manhattan.pdf",
             beta=config["apoe4"]["betas"],
             heritability=config["apoe4"]["heritabilities"],
-            plot_type=["manhattan", "compare_gcta"],
+        ) + expand(
+            out+"apoe4/sim_gcta/b{beta}/h{heritability}/manhattan.pdf",
+            beta=config["apoe4"]["betas"],
+            heritability=config["apoe4"]["heritabilities"],
+        ) + expand(
+            out+"apoe4/sim_gcta/b{beta}/h{heritability}/compare_gcta.pdf",
+            beta=config["apoe4"]["betas"],
+            heritability=config["apoe4"]["heritabilities"],
         ) + expand(
             out+"ancestry/sim_pts/b{beta}/manhattan.pdf",
             beta=config["ancestry"]["betas"],

@@ -95,7 +95,7 @@ def main(linear=[sys.stdin], output=sys.stdout, ids=tuple(), orange_ids=tuple(),
         label_distance = pos_range/45
         # replace NaN with inf
         df["pval"] = df["pval"].fillna(np.inf)
-        df['-log10(p)'] = -np.log(df["pval"])
+        df['-log10(p)'] = -np.log10(df["pval"])
         # replace -infinity values with 0
         df['-log10(p)'].replace([-np.inf], 0, inplace=True)
         df.chromosome = df.chromosome.astype('category')
