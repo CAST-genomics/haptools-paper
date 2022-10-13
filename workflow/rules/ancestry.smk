@@ -134,6 +134,7 @@ rule gwas:
     params:
         in_prefix = lambda w, input: Path(input.pgen).with_suffix(""),
         out_prefix = lambda w, output: Path(output.log).with_suffix(""),
+        cc = lambda wildcards: "--1 " if wildcards.cc == "cc" else ""
     output:
         log = temp(out+"sim_pts/{cc}/b{beta}/{type}/{samp}/{samp}.log"),
         linear = directory(out+"sim_pts/{cc}/b{beta}/{type}/{samp}"),
@@ -147,7 +148,7 @@ rule gwas:
     conda:
         "../envs/default.yml"
     shell:
-        "plink2 --linear allow-no-covars --variance-standardize "
+        "plink2 --linear allow-no-covars --variance-standardize {params.cc}"
         "--pheno {input.pts} --pfile {params.in_prefix} --out {params.out_prefix} "
         "--threads {threads} &>{log}"
 
@@ -197,8 +198,9 @@ rule power:
         ancestry = expand(ancestry_pat, beta = config["betas"], allow_missing=True),
         normal = expand(normal_pat, beta = config["betas"], allow_missing=True),
     params:
-        ancestry = lambda wildcards: ancestry_pat,
-        normal = lambda wildcards: normal_pat,
+        binary = lambda wildcards: "--binary " if wildcards.cc == "cc" else "",
+        ancestry = lambda w: expand(ancestry_pat, cc=w.cc, allow_missing=True),
+        normal = lambda w: expand(normal_pat, cc=w.cc, allow_missing=True),
         snp = snp_id,
     output:
         png = out+"sim_pts/{cc}/power.pdf"
@@ -211,5 +213,5 @@ rule power:
     conda:
         "../envs/default.yml"
     shell:
-        "workflow/scripts/power.py -o {output.png} {params.snp} "
+        "workflow/scripts/power.py -o {output.png} {params.binary} {params.snp} "
         "'{params.ancestry}' '{params.normal}' &>{log}"
