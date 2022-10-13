@@ -230,46 +230,6 @@ rule manhattan:
         "workflow/scripts/manhattan.py -o {output.png} {params.linear} "
         "{params.red_ids} {params.orange_ids} &>{log}"
 
-# rule compare_gcta:
-#     input:
-#         pheno = expand(
-#             rules.sim_pt.output.pts,
-#             samp=config["snps_hap"],
-#             heritability=config["heritabilities"],
-#             allow_missing=True
-#         ),
-#         phen = expand(
-#             rules.sim_gcta.output.pts,
-#             samp=config["snps_hap"],
-#             heritability=config["heritabilities"],
-#             allow_missing=True
-#         ),
-#     params:
-#         pheno = lambda wildcards: expand(
-#             rules.sim_pt.output.pts,
-#             samp=config["snps_hap"],
-#             beta=wildcards.beta,
-#             allow_missing=True,
-#         )[0],
-#         phen = lambda wildcards: expand(
-#             rules.sim_gcta.output.pts,
-#             samp=config["snps_hap"],
-#             beta=wildcards.beta,
-#             allow_missing=True,
-#         )[0],
-#     output:
-#         png = out+"sim_gcta/b{beta}/compare_gcta.pdf",
-#     resources:
-#         runtime="0:04:00"
-#     log:
-#         out+"logs/compare_gcta/b{beta}/compare_gcta.log"
-#     benchmark:
-#         out+"bench/compare_gcta/b{beta}/compare_gcta.txt"
-#     conda:
-#         "../envs/default.yml"
-#     shell:
-#         "workflow/scripts/compare_gcta.py -o {output.png} {params} &> {log}"
-
 rule compare_gcta:
     input:
         pheno = expand(
