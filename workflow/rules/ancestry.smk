@@ -109,20 +109,21 @@ rule sim_pts:
         hap = config["hap"],
     params:
         beta = lambda wildcards: wildcards.beta,
+        p = lambda w: ["", f"-p {config['prevalence']}"][w.cc == "cc"],
         reps = config["replicates"],
     output:
-        pts = out+"sim_pts/b{beta}/{type}/{samp}.pheno",
+        pts = out+"sim_pts/{cc}/b{beta}/{type}/{samp}.pheno",
     resources:
         runtime="0:04:00"
     log:
-        out+"logs/sim_pts/b{beta}/{type}/{samp}.log"
+        out+"logs/sim_pts/{cc}/b{beta}/{type}/{samp}.log"
     benchmark:
-        out+"bench/sim_pts/b{beta}/{type}/{samp}.txt"
+        out+"bench/sim_pts/{cc}/b{beta}/{type}/{samp}.txt"
     conda:
         "../envs/haptools.yml"
     shell:
         "haptools simphenotype -r {params.reps} -o {output.pts} -v DEBUG {input.pgen} "
-        "<( zcat {input.hap} | sed 's/\\t0.99$/\\t{params.beta}/' ) &>{log}"
+        "{params.p} <( zcat {input.hap} | sed 's/\\t0.99$/\\t{params.beta}/' ) &>{log}"
 
 rule gwas:
     input:
@@ -134,14 +135,14 @@ rule gwas:
         in_prefix = lambda w, input: Path(input.pgen).with_suffix(""),
         out_prefix = lambda w, output: Path(output.log).with_suffix(""),
     output:
-        log = temp(out+"sim_pts/b{beta}/{type}/{samp}/{samp}.log"),
-        linear = directory(out+"sim_pts/b{beta}/{type}/{samp}"),
+        log = temp(out+"sim_pts/{cc}/b{beta}/{type}/{samp}/{samp}.log"),
+        linear = directory(out+"sim_pts/{cc}/b{beta}/{type}/{samp}"),
     resources:
         runtime="0:04:00"
     log:
-        out+"logs/gwas/b{beta}/{type}/{samp}.log"
+        out+"logs/gwas/{cc}/b{beta}/{type}/{samp}.log"
     benchmark:
-        out+"bench/gwas/b{beta}/{type}/{samp}.txt"
+        out+"bench/gwas/{cc}/b{beta}/{type}/{samp}.txt"
     threads: 1
     conda:
         "../envs/default.yml"
@@ -165,13 +166,13 @@ rule manhattan:
         ],
         snp = snp_id,
     output:
-        png = out+"sim_pts/b{beta}/manhattan.pdf",
+        png = out+"sim_pts/{cc}/b{beta}/manhattan.pdf",
     resources:
         runtime="0:04:00"
     log:
-        out+"logs/manhattan/b{beta}/manhattan.log"
+        out+"logs/manhattan/{cc}/b{beta}/manhattan.log"
     benchmark:
-        out+"bench/manhattan/b{beta}/manhattan.txt"
+        out+"bench/manhattan/{cc}/b{beta}/manhattan.txt"
     conda:
         "../envs/default.yml"
     shell:
@@ -193,20 +194,20 @@ normal_pat = expand(
 
 rule power:
     input:
-        ancestry = expand(ancestry_pat, beta = config["betas"]),
-        normal = expand(normal_pat, beta = config["betas"]),
+        ancestry = expand(ancestry_pat, beta = config["betas"], allow_missing=True),
+        normal = expand(normal_pat, beta = config["betas"], allow_missing=True),
     params:
         ancestry = lambda wildcards: ancestry_pat,
         normal = lambda wildcards: normal_pat,
         snp = snp_id,
     output:
-        png = out+"power.pdf"
+        png = out+"sim_pts/{cc}/power.pdf"
     resources:
         runtime="0:05:00"
     log:
-        out+"logs/power/log.log"
+        out+"logs/power/{cc}/log.log"
     benchmark:
-        out+"bench/power/bench.txt"
+        out+"bench/power/{cc}/bench.txt"
     conda:
         "../envs/default.yml"
     shell:

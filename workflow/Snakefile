@@ -27,9 +27,13 @@ rule all:
             beta=config["apoe4"]["betas"],
             heritability=config["apoe4"]["heritabilities"],
         ) + expand(
-            out+"ancestry/sim_pts/b{beta}/manhattan.pdf",
+            out+"ancestry/sim_pts/{cc}/b{beta}/manhattan.pdf",
             beta=config["ancestry"]["betas"],
-        ) + [out+"ancestry/power.pdf"]
+            cc="qt",
+        ) + expand(
+            out+"ancestry/sim_pts/{cc}/power.pdf",
+            cc=["qt", "cc"],
+        )
 
 module apoe4:
     snakefile: "rules/apoe4.smk"
