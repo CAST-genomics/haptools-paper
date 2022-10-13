@@ -311,7 +311,6 @@ rule compare_gcta_manhattan:
         ),
     params:
         red_ids = [f"-i {i}" for i in config["snps_hap"].split("-")],
-        orange_ids = "-b "+config["causal_hap"],
     output:
         png = out+"sim_gcta/b{beta}/h{heritability}/manhattan.pdf",
     resources:
@@ -324,4 +323,4 @@ rule compare_gcta_manhattan:
         "../envs/default.yml"
     shell:
         "workflow/scripts/manhattan.py -o {output.png} -l {input.pheno} "
-        "-l {input.phen} {params.red_ids} {params.orange_ids} &>{log}"
+        "-l {input.phen} {params.red_ids} &>{log}"
