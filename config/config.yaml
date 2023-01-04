@@ -3,8 +3,8 @@ apoe4:
   causal_hap: "haplotype"
   snps_hap: "rs36046716-rs1046282"
   genotypes: resources/1000G_chr19.vcf.gz
-  betas: [0.15, 0.2, 0.3, 0.4]
-  heritabilities: [0.001, 0.1, 0.5, 1]
+  betas: [0.2]
+  heritabilities: [0.1, 0.5]
   region: 19:45901409
 ancestry:
   reference: resources/1000G_chr1.vcf.gz
