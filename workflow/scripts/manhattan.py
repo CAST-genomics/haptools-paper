@@ -10,6 +10,14 @@ import matplotlib.pyplot as plt
 from pandas.api.types import CategoricalDtype
 
 
+AXIS_FONTSIZE = 6
+TITLE_FONTSIZE = 5
+AXIS_LABELSIZE = 2.5
+LABEL_FONTSIZE = 4
+TICK_FONTSIZE = 4
+POINT_SIZE = 0.75
+
+
 @click.command()
 @click.option(
     "-l",
@@ -55,7 +63,31 @@ from pandas.api.types import CategoricalDtype
     show_default=True,
     help="Whether to label the points by their IDs, as well",
 )
-def main(linear=[sys.stdin], output=sys.stdout, ids=tuple(), orange_ids=tuple(), label=True):
+@click.option(
+    "--small",
+    is_flag=True,
+    default=False,
+    show_default=True,
+    help="Whether to shrink the plot to a smaller size",
+)
+@click.option(
+    "-t",
+    "--titles",
+    multiple=True,
+    type=str,
+    default=tuple(),
+    show_default="infer from IDs",
+    help="Which titles should be given to each plot?",
+)
+def main(
+    linear=[sys.stdin],
+    output=sys.stdout,
+    ids=tuple(),
+    orange_ids=tuple(),
+    label=True,
+    small=False,
+    titles=tuple(),
+):
     """
     Create a manhattan plot from the results of a PLINK2 GWAS
     """
@@ -77,7 +109,9 @@ def main(linear=[sys.stdin], output=sys.stdout, ids=tuple(), orange_ids=tuple(),
     keep_cols = ["chromosome", "pos", "id", "beta", "se", "pval"]
 
     # create the plot
-    fig, ax = plt.subplots(1, len(linear), figsize=(14, 8), sharex=True, sharey=True)
+    fig, ax = plt.subplots(
+        1, len(linear), sharex=True, sharey=True, constrained_layout=True,
+    )
 
     # parse the .linear files
     dfs = {}
@@ -92,7 +126,7 @@ def main(linear=[sys.stdin], output=sys.stdout, ids=tuple(), orange_ids=tuple(),
             usecols=keep_cols,
         ).sort_values("pos")
         pos_range = max(df["pos"]) - min(df["pos"])
-        label_distance = pos_range/45
+        label_distance = pos_range/17
         # replace NaN with inf
         df["pval"] = df["pval"].fillna(np.inf)
         df['-log10(p)'] = -np.log10(df["pval"])
@@ -104,7 +138,14 @@ def main(linear=[sys.stdin], output=sys.stdout, ids=tuple(), orange_ids=tuple(),
         )
         df = df.sort_values('chromosome')
         # create the plot using pandas and add it to the figure
-        df[~df["id"].isin(red_ids + orange_ids)].plot(kind='scatter', x='pos', y='-log10(p)', ax=ax[idx])
+        if small:
+            df[~df["id"].isin(red_ids + orange_ids)].plot(
+                kind='scatter', x='pos', y='-log10(p)', ax=ax[idx], s=POINT_SIZE,
+            )
+        else:
+            df[~df["id"].isin(red_ids + orange_ids)].plot(
+                kind='scatter', x='pos', y='-log10(p)', ax=ax[idx],
+            )
         # plot red ids if there are any
         if red_ids:
             v_ids = df[df["id"].isin(red_ids)]['id']
@@ -112,10 +153,16 @@ def main(linear=[sys.stdin], output=sys.stdout, ids=tuple(), orange_ids=tuple(),
             y_ids = df[df["id"].isin(red_ids)]['-log10(p)']
             if np.any(np.isinf(y_ids)):
                 raise ValueError(f"The p-values for {red_ids} are too powerful!")
-            ax[idx].scatter(x_ids, y_ids, color='red', marker='o', s=20)
+            if small:
+                ax[idx].scatter(x_ids, y_ids, color='red', marker='o', s=POINT_SIZE)
+            else:
+                ax[idx].scatter(x_ids, y_ids, color='red', marker='o', s=20)
             if label:
                 for v_id, x_id, y_id in zip(v_ids, x_ids, y_ids):
-                    ax[idx].annotate(v_id, (x_id+label_distance, y_id))
+                    if small:
+                        ax[idx].annotate(v_id, (x_id+label_distance, y_id), fontsize=LABEL_FONTSIZE)
+                    else:
+                        ax[idx].annotate(v_id, (x_id+label_distance, y_id))
         # plot blue ids if there are any
         if orange_ids:
             v_ids = df[df["id"].isin(orange_ids)]['id']
@@ -123,13 +170,32 @@ def main(linear=[sys.stdin], output=sys.stdout, ids=tuple(), orange_ids=tuple(),
             y_ids = df[df["id"].isin(orange_ids)]['-log10(p)']
             if np.any(np.isinf(y_ids)):
                 raise ValueError(f"The p-values for {orange_ids} are too powerful!")
-            ax[idx].scatter(x_ids, y_ids, color='orange', marker='o', s=20)
+            if small:
+                ax[idx].scatter(x_ids, y_ids, color='orange', marker='o', s=POINT_SIZE)
+            else:
+                ax[idx].scatter(x_ids, y_ids, color='orange', marker='o', s=20)
             if label:
                 for v_id, x_id, y_id in zip(v_ids, x_ids, y_ids):
-                    ax[idx].annotate(v_id, (x_id+label_distance, y_id))
+                    if small:
+                        ax[idx].annotate(v_id, (x_id+label_distance, y_id), fontsize=LABEL_FONTSIZE)
+                    else:
+                        ax[idx].annotate(v_id, (x_id+label_distance, y_id))
         # set title and perform cleanup/secondary tasks
         ax_name = Path(Path(linear_fname.stem).stem).stem
-        ax[idx].title.set_text(ax_name.replace('-', " + "))
+        if ax_name == "haplotype":
+            ax_name = "Haplotype effect"
+        if titles:
+            print(f"using title {titles[idx]}")
+            ax_name = titles[idx]
+        if small:
+            ax[idx].set_title(ax_name.replace('-', " + "), fontdict={
+                'fontsize': TITLE_FONTSIZE
+            })
+            ax[idx].tick_params(axis='both', which='major', labelsize=TICK_FONTSIZE)
+            ax[idx].tick_params(axis='both', which='minor', labelsize=TICK_FONTSIZE)
+            ax[idx].xaxis.get_offset_text().set_fontsize(TICK_FONTSIZE)
+        else:
+            ax[idx].set_title(ax_name.replace('-', " + "))
         ax[idx].set(xlabel=None, ylabel=None)
         dfs[ax_name] = df
         max_val = ax[idx].get_ylim()[1]
@@ -142,9 +208,18 @@ def main(linear=[sys.stdin], output=sys.stdout, ids=tuple(), orange_ids=tuple(),
         ax[idx].set_ylim(top=max_pval)
 
     # save the graph
-    fig.supxlabel('Chromosomal Position')
-    fig.supylabel('-log10(p value)')
-    plt.savefig(output)
+    if small:
+        fig.supxlabel('Chromosomal Position', fontsize=AXIS_FONTSIZE)
+        fig.supylabel('$-log_{10} P-value$', fontsize=AXIS_FONTSIZE)
+    else:
+        fig.supxlabel('Chromosomal Position')
+        fig.supxlabel('$-log_{10} P-value$')
+    if small:
+        fig.set_size_inches(2.65, 2.2)
+        plt.savefig(output, bbox_inches="tight", pad_inches=0.03)
+    else:
+        fig.set_size_inches(3.75, 2.5)
+        plt.savefig(output)
 
 
 if __name__ == "__main__":
