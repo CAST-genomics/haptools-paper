@@ -216,6 +216,7 @@ rule manhattan:
         linear = lambda wildcards, input: [f"-l {i}" for i in input.linear],
         red_ids = [f"-i {i}" for i in config["snps_hap"].split("-")],
         orange_ids = "-b "+config["causal_hap"],
+        size = "small",
     output:
         png = out+"sim_pt/b{beta}/h{heritability}/manhattan.pdf",
     resources:
@@ -228,7 +229,7 @@ rule manhattan:
         "../envs/default.yml"
     shell:
         "workflow/scripts/manhattan.py -o {output.png} {params.linear} "
-        "{params.red_ids} {params.orange_ids} &>{log}"
+        "--{params.size} {params.red_ids} {params.orange_ids} &>{log}"
 
 rule compare_gcta:
     input:
@@ -271,6 +272,7 @@ rule compare_gcta_manhattan:
         ),
     params:
         red_ids = [f"-i {i}" for i in config["snps_hap"].split("-")],
+        size = "small",
     output:
         png = out+"sim_gcta/b{beta}/h{heritability}/manhattan.pdf",
     resources:
@@ -282,5 +284,5 @@ rule compare_gcta_manhattan:
     conda:
         "../envs/default.yml"
     shell:
-        "workflow/scripts/manhattan.py -o {output.png} -l {input.pheno} "
-        "-l {input.phen} {params.red_ids} &>{log}"
+        "workflow/scripts/manhattan.py --{params.size} -o {output.png} -t simphenotype"
+        " -t GCTA -l {input.pheno} -l {input.phen} {params.red_ids} &>{log}"

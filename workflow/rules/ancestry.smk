@@ -166,6 +166,7 @@ rule manhattan:
             for i, samp in zip(input.linear, config["models"].keys())
         ],
         snp = snp_id,
+        size = "small",
     output:
         png = out+"sim_pts/{cc}/b{beta}/manhattan.pdf",
     resources:
@@ -177,8 +178,8 @@ rule manhattan:
     conda:
         "../envs/default.yml"
     shell:
-        "workflow/scripts/manhattan.py -o {output.png} {params.linear} -i {params.snp}"
-        " --no-label &>{log}"
+        "workflow/scripts/manhattan.py --{params.size} -o {output.png} {params.linear}"
+        " -i {params.snp} --no-label &>{log}"
 
 ancestry_pat = expand(
     rules.gwas.output.linear,

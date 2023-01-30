@@ -33,7 +33,7 @@ rule all:
         ) + expand(
             out+"ancestry/sim_pts/{cc}/power.pdf",
             cc=["qt", "cc"],
-        )
+        ) + [out+"bench/report.txt"]
 
 module apoe4:
     snakefile: "rules/apoe4.smk"
@@ -43,5 +43,10 @@ module ancestry:
     snakefile: "rules/ancestry.smk"
     config: config["ancestry"]
 
+module bench:
+    snakefile: "rules/bench.smk"
+    config: config["bench"]
+
 use rule * from apoe4 as apoe4_*
 use rule * from ancestry as ancestry_*
+use rule * from bench as bench_*

@@ -11,6 +11,9 @@ import statsmodels.api as sm
 import matplotlib.pyplot as plt
 
 
+POINT_SIZE = 15
+
+
 def read_pheno(path: Path) -> pd.Series:
     df = pd.read_csv(
         path,
@@ -55,7 +58,10 @@ def main(haptools: Path, gcta: Path, output: Path):
         ignore_index=False, names=("method", "sample"),
     ).unstack(level=0)["Phenotypes"]
 
-    sns.scatterplot(data=phens, x="gcta", y="haptools")
+    sns.set(rc = {'figure.figsize':(2.6, 2.5), 'figure.constrained_layout.use': True})
+    sns.set(font_scale = 0.85)
+    sns.set_style("ticks")
+    sns.scatterplot(data=phens, x="gcta", y="haptools", s=POINT_SIZE)
     plt.axline([0, 0], [1, 1])
 
     plt.savefig(output)

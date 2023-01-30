@@ -10,6 +10,11 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 
 
+AXIS_FONTSIZE = 8
+TICK_FONTSIZE = 7
+POINT_SIZE = 4
+
+
 def get_paths(path: Path, binary: bool = False) -> dict:
     """
     Retrieve the paths to each of the PLINK2 GWAS files
@@ -159,12 +164,22 @@ def main(snp: str, ancestry: Path, normal: Path, binary: bool=False, output: str
     ancestry = dict(sorted(ancestry.items(), key=lambda i: i[0]))
     normal = dict(sorted(normal.items(), key=lambda i: i[0]))
     # now, plot these values
-    plt.figure(figsize=(14,8))
+    plt.rcParams['figure.constrained_layout.use'] = True
+    plt.rcParams.update({'font.size': AXIS_FONTSIZE})
+    plt.figure(figsize=(3.75,2.5))
     #plt.gca().set_xticks(ancestry.keys())
-    plt.plot(ancestry.keys(), ancestry.values(), linestyle="-", marker="o", label="ancestry")
-    plt.plot(normal.keys(), normal.values(), linestyle="--", marker="s", label="normal")
+    plt.plot(
+        ancestry.keys(), ancestry.values(), linestyle="-", marker="o",
+        label="ancestry", markersize=POINT_SIZE,
+    )
+    plt.plot(
+        normal.keys(), normal.values(), linestyle="--", marker="s",
+        label="normal", markersize=POINT_SIZE,
+    )
     plt.ylabel("Power")
     plt.xlabel("Effect size")
+    plt.tick_params(axis='both', which='major', labelsize=TICK_FONTSIZE)
+    plt.tick_params(axis='both', which='minor', labelsize=TICK_FONTSIZE)
     plt.legend()
     plt.savefig(output)
 
