@@ -8,7 +8,11 @@ Execute the following command.
 ```
 git clone https://github.com/gymrek-lab/haptools-paper
 ```
-Example data for the pipeline is also available for download upon request.
+Example data for reproducing our results is [available for download](https://drive.google.com/drive/folders/1R9P7SCJuuKf49J-Orz1gSuS-GBUK_7FM), as well.
+```
+cd haptools-paper
+unzip resources-*.zip
+```
 
 # setup
 The pipeline is written as a Snakefile which can be executed via [Snakemake](https://snakemake.readthedocs.io). For reproduciblity, we recommend installing version 7.14.0:
@@ -37,7 +41,7 @@ We highly recommend you install [Snakemake via conda](https://snakemake.readthed
 Log files describing the output of the pipeline will be created within the results directory. The `qlog` file contains a basic description of the progress of each rule. More detailed log information can be found in the `logs/` directory.
 
 ### Executing the pipeline on your own data
-You must modify [the config.yaml file](config/config.yaml) to specify paths to your data before you perform step 2 above. Currently, the pipeline is configured to run on our example data, which is available upon request.
+You must modify [the config.yaml file](config/config.yaml) to specify paths to your data before you perform step 2 above. Currently, the pipeline is configured to run on our example data, which reproduces the figures in our manuscript.
 
 ### If this is your first time using Snakemake
 We recommend that you run `snakemake --help` to learn about Snakemake's options. For example, to check that the pipeline will be executed correctly before you run it, you can call Snakemake with the `-n -p -r` flags. This is also a good way to familiarize yourself with the steps of the pipeline and their inputs and outputs (the latter of which are inputs to the first rule in each workflow -- ie the `all` rule).
