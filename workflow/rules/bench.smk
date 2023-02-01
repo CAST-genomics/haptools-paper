@@ -21,7 +21,7 @@ rule pgen_write:
         out+"bench/write/pgen/{rep}.txt"
     threads: 5
     conda:
-        "haptools"
+        "../envs/haptools.yml"
     shell:
         "workflow/scripts/write_fake_gts.py --plink -v {params.variants} "
         "-s {params.samples} {output.pgen} > {output.time} 2> {log}"
@@ -84,7 +84,7 @@ rule pgen_read:
         out+"bench/read/pgen/{rep}.txt"
     threads: 5
     conda:
-        "haptools"
+        "../envs/haptools.yml"
     shell:
         "workflow/scripts/read_gts.py {input.pgen} > {output.time} 2> {log}"
 
@@ -142,7 +142,7 @@ rule report:
         out+"bench/report.txt"
     threads: 4
     conda:
-        "haptools"
+        "../envs/haptools.yml"
     shell:
         "{{ echo -e 'write_pgen\\tread_pgen\\twrite_vcf\\tread_vcf\\twrite_bcf\\tread_bcf'; paste "
         "<(cat {input.write_pgen}) <(cat {input.read_pgen})"
