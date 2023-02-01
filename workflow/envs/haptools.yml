@@ -1,7 +1,9 @@
 channels:
   - conda-forge
+  - bioconda
   - nodefaults
 dependencies:
   - conda-forge::pip==22.2.2
+  - bioconda::pysam==0.19.1
   - pip:
-    - git+https://github.com/cast-genomics/haptools.git@929d113b6c9c935565c033c4eb24f39c8acdf9e6#egg=haptools[files]
+    - git+https://github.com/cast-genomics/haptools.git@c98b20fd1f4ab748dc301068087cbf7745abadfc#egg=haptools[files]
