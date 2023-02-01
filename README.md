@@ -6,7 +6,7 @@ Analysis and results for the haptools manuscript
 # download
 Execute the following command.
 ```
-git clone https://github.com/gymrek-lab/haptools-paper
+git clone https://github.com/CAST-genomics/haptools-paper
 ```
 Example data for reproducing our results is [available for download](https://drive.google.com/drive/folders/1R9P7SCJuuKf49J-Orz1gSuS-GBUK_7FM), as well.
 ```
